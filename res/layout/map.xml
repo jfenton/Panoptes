@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <ImageView
+        android:id="@+id/imageView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/header" />
+
+    <TableLayout
+        android:id="@+id/relativeLayout1"
+        android:layout_width="match_parent"
+        android:layout_height="100dip"
+        android:layout_marginTop="10dip" >
+
+        <TableRow
+            android:id="@+id/tableRow4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal" >
+
+            <TextView
+                android:id="@+id/cinr_label"
+                android:padding="6dip"
+                android:text="CINR"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <TextView
+                android:id="@+id/cinr_value"
+                android:padding="6dip"
+                android:text="0db"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <ProgressBar
+                android:id="@+id/cinr_gauge"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="150dp"
+                android:padding="6dip" />
+        </TableRow>
+
+        <TableRow
+            android:id="@+id/tableRow4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal" >
+
+            <TextView
+                android:id="@+id/ber_label"
+                android:padding="6dip"
+                android:text="BER"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <TextView
+                android:id="@+id/ber_value"
+                android:padding="6dip"
+                android:text="0222"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            <ProgressBar
+                android:id="@+id/ber_gauge"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="150dp"
+                android:padding="6dip" />
+        </TableRow>
+
+        <TableRow
+            android:id="@+id/tableRow4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal" >
+        </TableRow>
+
+        <TextView
+            android:id="@+id/ber_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical|center_horizontal"
+            android:padding="6dip"
+            android:text="17th November 2011 00:00:01 UTC+0"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+    </TableLayout>
+
+    <com.google.android.maps.MapView
+        android:id="@+id/mapview"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_alignParentLeft="true"
+        android:layout_margin="5dip"
+        android:apiKey="0yPmZVEMJEmn-p-NrxlQwxIxFLbiAuqoMG6g4Vg"
+        android:clickable="true"
+        android:enabled="true" >
+    </com.google.android.maps.MapView>
+
+</LinearLayout>
