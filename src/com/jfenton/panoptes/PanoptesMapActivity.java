@@ -1,6 +1,7 @@
 package com.jfenton.panoptes;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import android.app.NotificationManager;
@@ -343,12 +344,15 @@ public class PanoptesMapActivity extends MapActivity {
 			ber_pb.setProgress(signalStrength.getGsmBitErrorRate());
 			ber_pb.setMax(5);
 			
-			Toast.makeText(
-					getApplicationContext(),
-					"GSM Signal Strength Cinr = "
-							+ String.valueOf(signalStrength
-									.getGsmSignalStrength()),
-					Toast.LENGTH_SHORT).show();
+			TextView timestamp = (TextView)findViewById(R.id.timestamp);
+			timestamp.setText(new Date().toString());
+			
+//			Toast.makeText(
+//					getApplicationContext(),
+//					"GSM Signal Strength Cinr = "
+//							+ String.valueOf(signalStrength
+//									.getGsmSignalStrength()),
+//					Toast.LENGTH_SHORT).show();
 		}
 
 		public void onCallStateChanged(int state, String incomingNumber) {

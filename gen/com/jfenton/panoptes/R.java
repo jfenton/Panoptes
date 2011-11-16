@@ -15,14 +15,14 @@ public final class R {
         public static final int pre_froyo=0x7f040001;
     }
     public static final class drawable {
-        public static final int greendot=0x7f020000;
-        public static final int header=0x7f020001;
-        public static final int ic_launcher=0x7f020002;
+        public static final int backing=0x7f020000;
+        public static final int greendot=0x7f020001;
+        public static final int header=0x7f020002;
+        public static final int ic_launcher=0x7f020003;
     }
     public static final class id {
         public static final int ber_gauge=0x7f060008;
         public static final int ber_label=0x7f060006;
-        public static final int ber_timestamp=0x7f060009;
         public static final int ber_value=0x7f060007;
         public static final int checkBox1=0x7f06000b;
         public static final int cinr_gauge=0x7f060005;
@@ -32,6 +32,7 @@ public final class R {
         public static final int mapview=0x7f06000a;
         public static final int relativeLayout1=0x7f060001;
         public static final int tableRow4=0x7f060002;
+        public static final int timestamp=0x7f060009;
     }
     public static final class layout {
         public static final int main=0x7f030000;

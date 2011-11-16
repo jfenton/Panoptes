@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" >
+    android:orientation="vertical" android:background="@drawable/backing">
 
     <ImageView
         android:id="@+id/imageView1"
@@ -74,7 +74,7 @@
         </TableRow>
 
         <TextView
-            android:id="@+id/ber_timestamp"
+            android:id="@+id/timestamp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center_vertical|center_horizontal"
@@ -86,9 +86,9 @@
     <com.google.android.maps.MapView
         android:id="@+id/mapview"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_height="150dip"
         android:layout_alignParentLeft="true"
-        android:layout_margin="5dip"
+        android:layout_margin="25dip"
         android:apiKey="0yPmZVEMJEmn-p-NrxlQwxIxFLbiAuqoMG6g4Vg"
         android:clickable="true"
         android:enabled="true" >
