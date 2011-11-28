@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="345dip"
+    android:orientation="vertical"
+    android:paddingBottom="15dip"
+    android:paddingLeft="15dip"
+    android:paddingRight="15dip" >
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/monitor_backing"
+        android:orientation="vertical"
+        android:padding="15dip" >
+
+        <TextView
+            android:id="@+id/cardTitle"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Real-time Analytics"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="#333333"
+            android:textSize="21dip"
+            android:textStyle="bold" />
+
+        <TableLayout
+            android:id="@+id/linearLayout1"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="12dip"
+            android:paddingTop="0dip" >
+
+            <TableRow >
+
+                <TextView
+                    android:id="@+id/textView1"
+                    android:gravity="right"
+                    android:padding="3dip"
+                    android:text="Updated:"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:textColor="#333333"
+                    android:textSize="13dip"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/timestamp"
+                    android:text="25th Nov 2011 18:20:22 GMT+0"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:textColor="#333333"
+                    android:textSize="13dip" />
+            </TableRow>
+        </TableLayout>
+
+        <com.jfenton.panoptes.PanoptesMonitorCardDataView
+            android:id="@+id/card_datums"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:divider="@null"
+            android:orientation="vertical" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="3dip"
+            android:text="Current Operator service is acceptable."
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="#339933"
+            android:textSize="13dip"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

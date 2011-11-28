@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingLeft="15dip" 
+    android:paddingRight="15dip" 
+    android:paddingBottom="15dip" >
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/card_backing"
+        android:orientation="vertical"
+        android:padding="15dip" >
+
+        <TextView
+            android:id="@+id/cardTitle"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Operator Report Card"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="#333333"
+            android:textSize="21dip"
+            android:textStyle="bold" />
+
+        <TableLayout
+            android:id="@+id/linearLayout1"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="0dip"
+            android:paddingBottom="12dip">
+
+            <TableRow >
+
+                <TextView
+                    android:id="@+id/textView1"
+                    android:gravity="right"
+                    android:padding="3dip"
+                    android:text="From:"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:textColor="#333333"
+                    android:textSize="13dip"
+                    android:textStyle="bold"
+                    android:width="45dip" />
+
+                <TextView
+                    android:id="@+id/textView1"
+                    android:text="25th November 2011 18:20:22 GMT+0"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:textColor="#333333"
+                    android:textSize="13dip" />
+            </TableRow>
+
+            <TableRow >
+
+                <TextView
+                    android:id="@+id/textView1"
+                    android:gravity="right"
+                    android:padding="3dip"
+                    android:text="To:"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:textColor="#333333"
+                    android:textSize="13dip"
+                    android:textStyle="bold"
+                    android:width="45dip" />
+
+                <TextView
+                    android:id="@+id/textView1"
+                    android:text="25th November 2011 18:20:58 GMT+0"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:textColor="#333333"
+                    android:textSize="13dip" />
+            </TableRow>
+        </TableLayout>
+
+        <com.jfenton.panoptes.PanoptesCardDataView
+            android:id="@+id/card_datums"
+            android:layout_width="fill_parent"
+            android:layout_height="350dip"
+            android:divider="@null"
+            android:orientation="vertical" />
+    </LinearLayout>
+
+</LinearLayout>

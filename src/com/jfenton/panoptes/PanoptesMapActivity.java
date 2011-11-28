@@ -1,8 +1,12 @@
 package com.jfenton.panoptes;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+
+import org.json.JSONObject;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -14,6 +18,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.drawable.Drawable;
 import android.location.Criteria;
 import android.location.Location;
@@ -21,10 +26,20 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.telephony.NeighboringCellInfo;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
+import android.util.EventLog;
+import android.util.EventLog.Event;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -60,9 +75,6 @@ public class PanoptesMapActivity extends MapActivity {
 	PanoptesItemizedOverlay itemizedOverlay;
 	MapController mapController;
 
-	TelephonyManager Tel;
-	PanoptesPhoneStateListener panoptesPhoneStateListener;
-
 	protected static String TAG = "PlaceActivity";
 
 	// TODO (RETO) Add "refreshing" icons when stuff is blank or refreshing.
@@ -84,8 +96,12 @@ public class PanoptesMapActivity extends MapActivity {
 
 	protected IntentFilter newCheckinFilter;
 	protected ComponentName newCheckinReceiverName;
-	
+
 	private ArrayList<OverlayItem> mOverlays = new ArrayList<OverlayItem>();
+
+	protected TelephonyManager mainGSM;
+	protected GSMReceiver receiverGSM;
+	protected List<NeighboringCellInfo> gsmList;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -98,164 +114,214 @@ public class PanoptesMapActivity extends MapActivity {
 
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.map);
-		
+
+		ArrayList<EventLog.Event> logs = new ArrayList<EventLog.Event>();
+		try {
+			int[] tags = new int[] { 50100, 50101, 50102, 50103, 50104, 50105, 50106, 50107, 50108, 50109, 50110, 50111, 50112, 50113, 50114, 50115, 50116 };
+
+			EventLog.readEvents(tags, logs);
+			Iterator<Event> logsIterator = logs.iterator();
+			Event event = null;
+			while (logsIterator.hasNext()) {
+				event = (Event) logsIterator.next();
+				Object o[] = (Object[]) event.getData();
+				String logline = "";
+				for (int i = 0; i < o.length; i++) {
+					logline = logline + o[i].toString() + ",";
+				}
+				Log.v("Panoptes", "Got log entry with tag " + event.getTag() + ": " + logline);
+
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		Log.v("Panoptes", "GSMReciever instantiation");
+		mainGSM = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+		receiverGSM = new GSMReceiver();
+		registerReceiver(receiverGSM, new IntentFilter());
+
+		Log.v("Panoptes", "Neighbours:");
+		List<NeighboringCellInfo> n = mainGSM.getNeighboringCellInfo();
+		StringBuilder sb2 = new StringBuilder();
+		for (NeighboringCellInfo nci : n) {
+			int ncid = nci.getCid();
+			int nrss = nci.getRssi();
+			if (ncid > 0) {
+				String ns = "  neighbors: " + ncid + ", " + nrss + "\n";
+				Log.v("Panoptes", ns);
+			}
+		}
+
 		// Map initialisation
-		mapView = (MapView) findViewById(R.id.mapview);
-		mapView.setBuiltInZoomControls(true);
-		  
-		mapController = mapView.getController();
-		mapController.setZoom(16); 
-		  
-		mapOverlays = mapView.getOverlays();
-		drawable = this.getResources().getDrawable(R.drawable.greendot);
-		itemizedOverlay = new PanoptesItemizedOverlay(drawable);
-		GeoPoint point = new GeoPoint(19240000,-99120000);
-		OverlayItem overlayitem = new OverlayItem(point, "", "");
-		itemizedOverlay.addOverlay(overlayitem);
-		mapOverlays.add(itemizedOverlay);
-		
-		// Listener setup
-		panoptesPhoneStateListener = new PanoptesPhoneStateListener();
-		Tel = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-		Tel.listen(panoptesPhoneStateListener,
-				PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-		Tel.listen(panoptesPhoneStateListener,
-				PhoneStateListener.LISTEN_CALL_STATE);
+		// mapView = (MapView) findViewById(R.id.mapview);
+		// mapView.setBuiltInZoomControls(true);
+		//
+		// mapController = mapView.getController();
+		// mapController.setZoom(16);
+		//
+		// mapOverlays = mapView.getOverlays();
+		// drawable = this.getResources().getDrawable(R.drawable.greendot);
+		// itemizedOverlay = new PanoptesItemizedOverlay(drawable);
+		// GeoPoint point = new GeoPoint(19240000, -99120000);
+		// OverlayItem overlayitem = new OverlayItem(point, "", "");
+		// itemizedOverlay.addOverlay(overlayitem);
+		// mapOverlays.add(itemizedOverlay);
 
-	    // Get references to the managers
-	    packageManager = getPackageManager();
-	    notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-	    locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-	    
-	    // Get a reference to the Shared Preferences and a Shared Preference Editor.
+		// Get references to the managers
+		packageManager = getPackageManager();
+		notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+		// Get a reference to the Shared Preferences and a Shared Preference
+		// Editor.
 		prefs = getSharedPreferences(PanoptesConstants.SHARED_PREFERENCE_FILE, Context.MODE_PRIVATE);
-	    prefsEditor = prefs.edit();  
-	    
-	    // Instantiate a SharedPreferenceSaver class based on the available platform version.
-	    // This will be used to save shared preferences
-	    sharedPreferenceSaver = PlatformSpecificImplementationFactory.getSharedPreferenceSaver(this);
-	           
-	    // Save that we've been run once.
-	    prefsEditor.putBoolean(PanoptesConstants.SP_KEY_RUN_ONCE, true);
-	    sharedPreferenceSaver.savePreferences(prefsEditor, false);
-	    
-	    // Specify the Criteria to use when requesting location updates while the application is Active
-	    criteria = new Criteria();
-	    if (PanoptesConstants.USE_GPS_WHEN_ACTIVITY_VISIBLE)
-	      criteria.setAccuracy(Criteria.ACCURACY_FINE);
-	    else
-	      criteria.setPowerRequirement(Criteria.POWER_LOW);
-	    
-	    // Setup the location update Pending Intents
-	    Intent activeIntent = new Intent(this, LocationChangedReceiver.class);
-	    locationListenerPendingIntent = PendingIntent.getBroadcast(this, 0, activeIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+		prefsEditor = prefs.edit();
 
-	    Intent passiveIntent = new Intent(this, PassiveLocationChangedReceiver.class);
-	    locationListenerPassivePendingIntent = PendingIntent.getBroadcast(this, 0, passiveIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+		// Instantiate a SharedPreferenceSaver class based on the available
+		// platform version.
+		// This will be used to save shared preferences
+		sharedPreferenceSaver = PlatformSpecificImplementationFactory.getSharedPreferenceSaver(this);
 
-	    // Instantiate a LastLocationFinder class.
-	    // This will be used to find the last known location when the application starts.
-	    lastLocationFinder = PlatformSpecificImplementationFactory.getLastLocationFinder(this);
-	    lastLocationFinder.setChangedLocationListener(oneShotLastLocationUpdateListener);
-	    
-	    // Instantiate a Location Update Requester class based on the available platform version.
-	    // This will be used to request location updates.
-	    locationUpdateRequester = PlatformSpecificImplementationFactory.getLocationUpdateRequester(locationManager);
-	    
-	    getLocationAndUpdatePlaces(true);
+		// Save that we've been run once.
+		prefsEditor.putBoolean(PanoptesConstants.SP_KEY_RUN_ONCE, true);
+		sharedPreferenceSaver.savePreferences(prefsEditor, false);
+
+		// Specify the Criteria to use when requesting location updates while
+		// the application is Active
+		criteria = new Criteria();
+		if (PanoptesConstants.USE_GPS_WHEN_ACTIVITY_VISIBLE)
+			criteria.setAccuracy(Criteria.ACCURACY_FINE);
+		else
+			criteria.setPowerRequirement(Criteria.POWER_LOW);
+
+		// Setup the location update Pending Intents
+		Intent activeIntent = new Intent(this, LocationChangedReceiver.class);
+		locationListenerPendingIntent = PendingIntent.getBroadcast(this, 0, activeIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+		Intent passiveIntent = new Intent(this, PassiveLocationChangedReceiver.class);
+		locationListenerPassivePendingIntent = PendingIntent.getBroadcast(this, 0, passiveIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+		// Instantiate a LastLocationFinder class.
+		// This will be used to find the last known location when the
+		// application starts.
+		lastLocationFinder = PlatformSpecificImplementationFactory.getLastLocationFinder(this);
+		lastLocationFinder.setChangedLocationListener(oneShotLastLocationUpdateListener);
+
+		// Instantiate a Location Update Requester class based on the available
+		// platform version.
+		// This will be used to request location updates.
+		locationUpdateRequester = PlatformSpecificImplementationFactory.getLocationUpdateRequester(locationManager);
+
+		getLocationAndUpdatePlaces(true);
 	}
-	
+
 	@Override
 	protected boolean isRouteDisplayed() {
-	    return false;
+		return false;
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		Tel.listen(panoptesPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+		PanoptesCardView.monitorCard.panoptesPhoneStateListener.onPause();
+//		Tel.listen(Panoptes.panoptesPhoneStateListener, PhoneStateListener.LISTEN_NONE);
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		Tel.listen(panoptesPhoneStateListener,
-				PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+		PanoptesCardView.monitorCard.panoptesPhoneStateListener.onResume();
+//		Tel.listen(panoptesPhoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
 	}
 
-	  /**
-	   * Find the last known location (using a {@link LastLocationFinder}) and updates the
-	   * place list accordingly.
-	   * @param updateWhenLocationChanges Request location updates
-	   */
-	  protected void getLocationAndUpdatePlaces(boolean updateWhenLocationChanges) {
-	    // This isn't directly affecting the UI, so put it on a worker thread.
-	    AsyncTask<Void, Void, Void> findLastLocationTask = new AsyncTask<Void, Void, Void>() {
-	      @Override
-	      protected Void doInBackground(Void... params) {
-	        // Find the last known location, specifying a required accuracy of within the min distance between updates
-	        // and a required latency of the minimum time required between updates.
-	        Location lastKnownLocation = lastLocationFinder.getLastBestLocation(PanoptesConstants.MAX_DISTANCE, 
-	            System.currentTimeMillis()-PanoptesConstants.MAX_TIME);
-	        
-	        // Update the place list based on the last known location within a defined radius.
-	        // Note that this is *not* a forced update. The Place List Service has settings to
-	        // determine how frequently the underlying web service should be pinged. This function  
-	        // is called everytime the Activity becomes active, so we don't want to flood the server
-	        // unless the location has changed or a minimum latency or distance has been covered.
-	        // TODO Modify the search radius based on user settings?
-	        // updatePlaces(lastKnownLocation, PanoptesConstants.DEFAULT_RADIUS, false);
-	        return null;
-	      }
-	    };
-	    findLastLocationTask.execute();
-	    
-	    // If we have requested location updates, turn them on here.
-	    toggleUpdatesWhenLocationChanges(updateWhenLocationChanges);
-	  }
+	/**
+	 * Find the last known location (using a {@link LastLocationFinder}) and
+	 * updates the place list accordingly.
+	 * 
+	 * @param updateWhenLocationChanges
+	 *            Request location updates
+	 */
+	protected void getLocationAndUpdatePlaces(boolean updateWhenLocationChanges) {
+		// This isn't directly affecting the UI, so put it on a worker thread.
+		AsyncTask<Void, Void, Void> findLastLocationTask = new AsyncTask<Void, Void, Void>() {
+			@Override
+			protected Void doInBackground(Void... params) {
+				// Find the last known location, specifying a required accuracy
+				// of within the min distance between updates
+				// and a required latency of the minimum time required between
+				// updates.
+				Location lastKnownLocation = lastLocationFinder.getLastBestLocation(PanoptesConstants.MAX_DISTANCE, System.currentTimeMillis() - PanoptesConstants.MAX_TIME);
 
-	  /**
-	   * Choose if we should receive location updates. 
-	   * @param updateWhenLocationChanges Request location updates
-	   */
-	  protected void toggleUpdatesWhenLocationChanges(boolean updateWhenLocationChanges) {   
-	    // Save the location update status in shared preferences
-	    prefsEditor.putBoolean(PanoptesConstants.SP_KEY_FOLLOW_LOCATION_CHANGES, updateWhenLocationChanges);
-	    sharedPreferenceSaver.savePreferences(prefsEditor, true);
+				// Update the place list based on the last known location within
+				// a defined radius.
+				// Note that this is *not* a forced update. The Place List
+				// Service has settings to
+				// determine how frequently the underlying web service should be
+				// pinged. This function
+				// is called everytime the Activity becomes active, so we don't
+				// want to flood the server
+				// unless the location has changed or a minimum latency or
+				// distance has been covered.
+				// TODO Modify the search radius based on user settings?
+				// updatePlaces(lastKnownLocation,
+				// PanoptesConstants.DEFAULT_RADIUS, false);
+				return null;
+			}
+		};
+		findLastLocationTask.execute();
 
-	    // Start or stop listening for location changes
-	    if (updateWhenLocationChanges)
-	      requestLocationUpdates();
-	    else 
-	      disableLocationUpdates();
-	  }
-	  
-	  /**
-	   * Start listening for location updates.
-	   */
-	  protected void requestLocationUpdates() {
-	    // Normal updates while activity is visible.
-	    locationUpdateRequester.requestLocationUpdates(PanoptesConstants.MAX_TIME, PanoptesConstants.MAX_DISTANCE, criteria, locationListenerPendingIntent);
+		// If we have requested location updates, turn them on here.
+		toggleUpdatesWhenLocationChanges(updateWhenLocationChanges);
+	}
 
-	    // Passive location updates from 3rd party apps when the Activity isn't visible.
-	    locationUpdateRequester.requestPassiveLocationUpdates(PanoptesConstants.PASSIVE_MAX_TIME, PanoptesConstants.PASSIVE_MAX_DISTANCE, locationListenerPassivePendingIntent);
-	    
-	    // Register a receiver that listens for when the provider I'm using has been disabled. 
-	    IntentFilter intentFilter = new IntentFilter(PanoptesConstants.ACTIVE_LOCATION_UPDATE_PROVIDER_DISABLED);
-	    registerReceiver(locProviderDisabledReceiver, intentFilter);
+	/**
+	 * Choose if we should receive location updates.
+	 * 
+	 * @param updateWhenLocationChanges
+	 *            Request location updates
+	 */
+	protected void toggleUpdatesWhenLocationChanges(boolean updateWhenLocationChanges) {
+		// Save the location update status in shared preferences
+		prefsEditor.putBoolean(PanoptesConstants.SP_KEY_FOLLOW_LOCATION_CHANGES, updateWhenLocationChanges);
+		sharedPreferenceSaver.savePreferences(prefsEditor, true);
 
-	    // Register a receiver that listens for when a better provider than I'm using becomes available.
-	    String bestProvider = locationManager.getBestProvider(criteria, false);
-	    String bestAvailableProvider = locationManager.getBestProvider(criteria, true);
-	    if (bestProvider != null && !bestProvider.equals(bestAvailableProvider)) {
-	      locationManager.requestLocationUpdates(bestProvider, 0, 0, bestInactiveLocationProviderListener, getMainLooper());
-	    }
-	  }
-	  
-	  /**
-	   * Stop listening for location updates
-	   */
-	  protected void disableLocationUpdates() {
+		// Start or stop listening for location changes
+		if (updateWhenLocationChanges)
+			requestLocationUpdates();
+		else
+			disableLocationUpdates();
+	}
+
+	/**
+	 * Start listening for location updates.
+	 */
+	protected void requestLocationUpdates() {
+		// Normal updates while activity is visible.
+		locationUpdateRequester.requestLocationUpdates(PanoptesConstants.MAX_TIME, PanoptesConstants.MAX_DISTANCE, criteria, locationListenerPendingIntent);
+
+		// Passive location updates from 3rd party apps when the Activity isn't
+		// visible.
+		locationUpdateRequester.requestPassiveLocationUpdates(PanoptesConstants.PASSIVE_MAX_TIME, PanoptesConstants.PASSIVE_MAX_DISTANCE, locationListenerPassivePendingIntent);
+
+		// Register a receiver that listens for when the provider I'm using has
+		// been disabled.
+		IntentFilter intentFilter = new IntentFilter(PanoptesConstants.ACTIVE_LOCATION_UPDATE_PROVIDER_DISABLED);
+		registerReceiver(locProviderDisabledReceiver, intentFilter);
+
+		// Register a receiver that listens for when a better provider than I'm
+		// using becomes available.
+		String bestProvider = locationManager.getBestProvider(criteria, false);
+		String bestAvailableProvider = locationManager.getBestProvider(criteria, true);
+		if (bestProvider != null && !bestProvider.equals(bestAvailableProvider)) {
+			locationManager.requestLocationUpdates(bestProvider, 0, 0, bestInactiveLocationProviderListener, getMainLooper());
+		}
+	}
+
+	/**
+	 * Stop listening for location updates
+	 */
+	protected void disableLocationUpdates() {
 		unregisterReceiver(locProviderDisabledReceiver);
 		locationManager.removeUpdates(locationListenerPendingIntent);
 		locationManager.removeUpdates(bestInactiveLocationProviderListener);
@@ -324,53 +390,19 @@ public class PanoptesMapActivity extends MapActivity {
 				requestLocationUpdates();
 		}
 	};
-	
-	private class PanoptesPhoneStateListener extends PhoneStateListener {
-		@Override
-		public void onSignalStrengthsChanged(SignalStrength signalStrength) {
-			super.onSignalStrengthsChanged(signalStrength);
-			
-			TextView cinr = (TextView)findViewById(R.id.cinr_value);
-			cinr.setText(String.valueOf(signalStrength.getGsmSignalStrength()));
-			
-			ProgressBar cinr_pb = (ProgressBar)findViewById(R.id.cinr_gauge);
-			cinr_pb.setProgress(signalStrength.getGsmSignalStrength());
-			cinr_pb.setMax(5);
 
-			TextView ber = (TextView)findViewById(R.id.ber_value);
-			ber.setText(String.valueOf(signalStrength.getGsmBitErrorRate()));
-			
-			ProgressBar ber_pb = (ProgressBar)findViewById(R.id.ber_gauge);
-			ber_pb.setProgress(signalStrength.getGsmBitErrorRate());
-			ber_pb.setMax(5);
-			
-			TextView timestamp = (TextView)findViewById(R.id.timestamp);
-			timestamp.setText(new Date().toString());
-			
-//			Toast.makeText(
-//					getApplicationContext(),
-//					"GSM Signal Strength Cinr = "
-//							+ String.valueOf(signalStrength
-//									.getGsmSignalStrength()),
-//					Toast.LENGTH_SHORT).show();
-		}
+	private class GSMReceiver extends BroadcastReceiver {
+		StringBuilder sb;
 
-		public void onCallStateChanged(int state, String incomingNumber) {
-			Toast.makeText(getApplicationContext(),
-					"Call state changed: " + stateName(state),
-					Toast.LENGTH_SHORT).show();
-		}
-
-		String stateName(int state) {
-			switch (state) {
-			case TelephonyManager.CALL_STATE_IDLE:
-				return "Idle";
-			case TelephonyManager.CALL_STATE_OFFHOOK:
-				return "Off hook";
-			case TelephonyManager.CALL_STATE_RINGING:
-				return "Ringing";
+		public void onReceive(Context c, Intent intent) {
+			sb = new StringBuilder();
+			gsmList = mainGSM.getNeighboringCellInfo();
+			for (int i = 0; i < gsmList.size(); i++) {
+				sb.append(new Integer(i + 1).toString() + ".");
+				sb.append((gsmList.get(i)).toString());
+				sb.append("\n");
 			}
-			return Integer.toString(state);
+			Log.v("Panoptes", sb.toString());
 		}
 	}
 }
