@@ -103,6 +103,9 @@ public class PanoptesMapActivity extends MapActivity {
 	protected GSMReceiver receiverGSM;
 	protected List<NeighboringCellInfo> gsmList;
 
+	public static PanoptesDatabaseHelper dbHelper;
+	public static SQLiteDatabase db;
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 
@@ -114,6 +117,10 @@ public class PanoptesMapActivity extends MapActivity {
 
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.map);
+
+		PanoptesCardCursorFactory cf = new PanoptesCardCursorFactory();
+		dbHelper = new PanoptesDatabaseHelper(this.getApplicationContext(), cf);
+		db = dbHelper.getWritableDatabase();
 
 		ArrayList<EventLog.Event> logs = new ArrayList<EventLog.Event>();
 		try {
@@ -224,14 +231,16 @@ public class PanoptesMapActivity extends MapActivity {
 	@Override
 	protected void onPause() {
 		super.onPause();
-		PanoptesCardView.monitorCard.panoptesPhoneStateListener.onPause();
+		if(PanoptesCardView.monitorCard != null && PanoptesCardView.monitorCard.panoptesPhoneStateListener != null)
+			PanoptesCardView.monitorCard.panoptesPhoneStateListener.onPause();
 //		Tel.listen(Panoptes.panoptesPhoneStateListener, PhoneStateListener.LISTEN_NONE);
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		PanoptesCardView.monitorCard.panoptesPhoneStateListener.onResume();
+		if(PanoptesCardView.monitorCard != null && PanoptesCardView.monitorCard.panoptesPhoneStateListener != null)
+			PanoptesCardView.monitorCard.panoptesPhoneStateListener.onResume();
 //		Tel.listen(panoptesPhoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
 	}
 

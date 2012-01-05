@@ -1,0 +1,714 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, target-densityDpi=device-dpi">
+	<script type="text/javascript" src="jquery.min.js"></script>
+	<style type="text/css">
+		div {
+			float: left;
+		}
+		body {
+			background-color: black;
+			font-family: "Droid Sans", Helvetica;
+			font-size: 10pt;
+			line-height: 16pt;
+		}
+		div.backing {
+			background-image: url(backing.png);
+			background-repeat: no-repeat;
+			background-position: center bottom;
+			min-height: 900px;
+		}
+		div.card {
+			clear: both;
+			margin-top: 8px;
+			margin-left: 8px;
+			margin-right: 8px;
+			margin-bottom: 10px;
+		}
+		div.card div.paper {
+			clear: both;
+			width: 492px;
+		}
+		div.card div.paper div.texture {
+			background: url(card_backing_body.png) repeat-y;
+		}
+		div.card#monitor div.paper div.texture {
+			background: url(monitor_backing_body.png) repeat-y;
+		}
+		div.card div.topcut {
+			clear: both;
+			background: url(card_backing_cut.png) no-repeat;
+			width: 492px;
+			height: 3px;
+			-moz-transform: scaleY(-1);
+    		-webkit-transform: scaleY(-1);
+    		-o-transform: scaleY(-1);
+    		transform: scaleY(-1);
+    		filter: flipv; /*IE*/
+    	}
+		div.card div.botcut {
+			clear: both;
+			background: url(card_backing_cut.png) no-repeat;
+			width: 492px;
+			height: 3px;
+		}
+		div.card#monitor div.topcut {
+			clear: both;
+			background: url(monitor_backing_cut.png) no-repeat;
+			width: 492px;
+			height: 3px;
+		}
+		div.card#monitor div.botcut {
+			clear: both;
+			background: url(monitor_backing_cut.png) no-repeat;
+			width: 492px;
+			height: 3px;
+		}
+		div.card div.qc_rejected {
+			float: none;
+			margin-top: -25px;
+			margin-left: 291px;
+			background: url(qc_rejected.png) no-repeat;
+			width: 180px;
+			height: 194px;
+		}
+		div.metric canvas.graph {
+			display: none;
+			float: left;
+			clear: both;
+			width: 415px;
+			height: 30px;
+			margin-top: 10px;
+			margin-bottom: 5px;
+		}
+		div.content {
+			margin-top: 20px;
+			margin-left: 20px;
+			margin-bottom: 10px;
+			line-height: 27pt;
+		}
+		div.status {
+			color: #00AA00;
+			text-align: center;
+			width: 100%;
+			font-size: 14pt;
+			font-weight: bold;
+		}
+		div.status.bad {
+			color: #990000;
+		}
+		div.title {
+			font-size: 22pt;
+			font-weight: bold;
+			margin-bottom: 5px;
+			width: 100%;
+		}
+		div.time {
+			font-size: 15pt;
+			width: 100%;
+			margin-bottom: 5px;
+		}
+		div.showing {
+			text-align: center;
+			width: 450px;
+			font-size: 12pt;
+			color: rgb(140,0,0);
+		}
+		div.metric {
+			width: 418px;
+			border: 1px solid #222222;
+			background-color: white;
+			margin-top: 10px;
+			margin-bottom: 10px;
+			padding: 15px;
+		}
+		div.metric div.name {
+			font-size: 18pt;
+			float: left;
+			font-weight: bold;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		div.metric div.value {
+			font-size: 18pt;
+			float: right;
+			font-weight: bold;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		div.metric div.description {
+			clear: both;
+			font-size: 14pt;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		div.metric img.map {	
+			clear: both;
+			margin-top: 15px;
+			margin-bottom: -3px;
+			width: 415px;
+			height: 300px;
+		}
+		div.location {
+		}
+		div.debug {
+			clear: both;
+			color: white;
+			height: 1000px;
+//			display: none;
+		}
+		div.buttons {
+			float: left;
+			clear: both;
+			margin-top: 10px;
+			margin-bottom: 10px;
+		}
+		div.buttons div.button {
+			border: 1px solid gray;
+			background-color: white;
+			font-size: 14pt;
+			padding-left: 15px;
+			padding-right: 15px;
+		}
+	</style>
+	<script type="text/javascript">
+		var counter = 0;
+		var lastUpdatedReportCard = null; 
+		function roundNumber(num, dec) {
+			var result = Math.round(num*Math.pow(10,dec))/Math.pow(10,dec);
+			return result;
+		}
+		
+		function displayCardMetricsForOffset(card, div, offset) {
+ 			var cardShouldDisplay = {
+ 	 				"gsm_rssi":1,
+ 	 				"cell_gsm_cid":1,
+ 	 				"gsm_ber":1,
+ 	 				"loc":1,
+ 	 				"called_number":1,
+ 	 				"disconnect_cause":1
+ 	 			};
+ 			var monitorShouldDisplay = {
+ 	 				"gsm_rssi":1,
+ 	 				"gsm_ber":1
+ 	 			};
+
+			$.each(card.state, function(key, value) {
+				var values;
+				if(typeof value == 'object') {
+					values = value;
+					if(offset == -1) {
+						value = values[values.length - 1];
+					} else {
+						value = values[offset];
+					}
+				} else {
+					values = [value];
+				}
+				var lat, lon;
+				if(key == 'id') { return true; }
+				if(key == 'last_updated') {
+					div.find('div.updated:first span.value:first').html(value);
+					return true;
+				} else if(key == 'period_from') {
+					div.find('div.period_from:first span.value:first').html(value);
+					return true;
+				} else if(key == 'period_to') {
+					div.find('div.period_to:first span.value:first').html(value);
+					return true;
+				} else if(key == 'ts') {
+					div.find('div.showing:first span.value:first').html(value);
+					return true;
+				} else {
+					var title, description, value_units;
+					value_units = '';
+					if(key == 'gsm_rssi') {
+						title = 'Signal Strength';
+						description = 'RSSI (Received Signal Strength Indicator)';
+						value_units = ' dBm';
+					} else if(key == 'so') {
+						title = 'SIM Operator';
+						description = 'MCC + MNC of the provider of the SIM.';
+					} else if(key == 'spn') {
+						title = 'SIM SN';
+						description = 'Serial number of the SIM card.';
+					} else if(key == 'spn') {
+						title = 'SIM Service Provider';
+						description = 'SPN (Service Provider Name)';
+					} else if(key == 'sciso') {
+						title = 'SIM Country ISO';
+						description = 'ISO country code for the SIM providers country.';
+					} else if(key == 'pt') {
+						title = 'Radio Technology (Voice)';
+						description = 'Type of radio used to transmit voice calls.';
+					} else if(key == 'nt') {
+						title = 'Radio Technology (Data)';
+						description = 'Current network technology in-use for data.';
+					} else if(key == 'no') {
+						title = 'Network Operator';
+						description = 'MCC + MNC of current registered operator.';
+					} else if(key == 'nciso') {
+						title = 'Network Operator MCC';
+						description = 'ISO country code for network operators country.';
+					} else if(key == 'msisdn') {
+						title = 'MSISDN';
+						description = 'MSISDN (Mobile Subscriber Number)';
+					} else if(key == 'non') {
+						title = 'Network Operator Name';
+						description = 'Current registered operator.';
+					} else if(key == 'cell_gsm_cid') {
+						title = 'GSM Cell ID';
+						description = 'Identifier for the cell tower.';
+					} else if(key == 'cell_gsm_lac') {
+						title = 'GSM LAC';
+						description = 'Cell Tower Location Area Code (LAC) ';
+					} else if(key == 'cell_gsm_psc') {
+						title = 'GSM PSC';
+						description = 'Primary Scrambling Code.';
+					} else if(key == 'cdma_dbm') {
+						title = 'CDMA RSSI';
+						description = 'Received Signal Strength Indication (RSSI)';
+					} else if(key == 'cdma_ecio') {
+						title = 'CDMA Ec/Io';
+						description = 'Current registered operator.';
+					} else if(key == 'cell_cdma_bsid') {
+						title = 'CDMA BSID';
+						description = 'Identifier for the Base Station.';
+					} else if(key == 'cell_cdma_loc') {
+						title = 'CDMA BS Location';
+						description = 'Location of the Base Station.';
+						var regex_loc = /([\-\d\.]+),([\-\d\.]+)/;
+						match = regex_loc.exec(value);
+						lat = match[1];
+						lon = match[2];
+						value = roundNumber(parseFloat(lat), 3) + "," + roundNumber(parseFloat(lon), 3);							
+					} else if(key == 'cell_cdma_nid') {
+						title = 'CDMA Network ID';
+						description = 'Network ID of the Cell Tower.';
+					} else if(key == 'son') {
+						title = 'SIM Operator Name';
+						description = 'Operator of your SIM card.';
+					} else if(key == 'cell_cdma_sid') {
+						title = 'CDMA System ID';
+						description = 'System ID of the Cell Tower.';
+					} else if(key == 'imei') {
+						title = 'IMEI';
+						description = 'International Mobile Equipment Identity (IMEI)';
+					} else if(key == 'evdo_dbm') {
+						title = 'EVDO RSSI';
+						description = 'Received Signal Strength Indication (RSSI)';
+					} else if(key == 'evdo_ecio') {
+						title = 'EVDO Ec/Io';
+						description = 'Ratio of receive pilot energy to total energy.';
+					} else if(key == 'evdo_snr') {
+						title = 'EVDO S/N Ratio';
+						description = 'Signal to Noise Ratio.';
+					} else if(key == 'non') {
+						title = 'Network Operator Name';
+						description = 'Current registered operator.';
+					} else if(key == 'datums') {
+						return true;
+					} else if(key == 'gsm_ber') {
+						title = 'Bit Error Rate';
+						description = 'BER (Bits Received With Errors)';
+						if(value == '-1') {
+							value = 'N/A';
+						} else {
+							value_units = ' %';
+						}
+					} else if(key == 'disconnect_cause') {
+						title = 'Disc. Reason';
+						description = 'Reason for the call failure.';
+					} else if(key == 'called_number') {
+						title = 'Called Party';
+						description = 'Phone number of callee as dialled.';
+					} else if(key.indexOf('loc_') == 0) {
+						// NOOP
+						return true;
+					} else if(key == 'loc') {
+						title = 'Location';
+						var regex_loc = /([\-\d\.]+),([\-\d\.]+)/;
+						var regex_locWithAccuracy = /([\-\d\.]+),([\-\d\.]+)@([\d\.]+)/;
+						if(value.match(regex_locWithAccuracy)) {
+							match = regex_locWithAccuracy.exec(value);
+							lat = match[1];
+							lon = match[2];
+							var acc = match[3];
+							value = roundNumber(parseFloat(lat), 3) + "," + roundNumber(parseFloat(lon), 3);
+							description = 'Location accurate to within ' + acc + ' metres';
+						} else {
+							match = regex_loc.exec(value);
+							lat = match[1];
+							lon = match[2];
+							value = roundNumber(parseFloat(lat), 3) + "," + roundNumber(parseFloat(lon), 3);							
+							description = 'Location accuracy unknown.';	
+						}
+					} else {
+						title = key;
+						description = 'Unknown metric received';
+						value_units = '';
+					}
+					var metricDiv = div.find('div.metrics div.metric.' + key);
+					var shouldDisplay;
+					if(card == null) {
+						shouldDisplay = monitorShouldDisplay;
+					} else {
+						shouldDisplay = cardShouldDisplay;
+					}
+					if(shouldDisplay[key] != null || (card != null && card.advanced)) {
+						if(metricDiv.length == 0) {
+							if(key == 'loc' || key == 'cell_cdma_loc') {
+								metricDiv = div.find('div.metric.location:first').clone();
+							} else {
+								metricDiv = div.find('div.metric:first').clone();
+							}
+							metricDiv.addClass(key);
+							metricDiv.appendTo(div.find('div.metrics'));
+							
+							metricDiv.data('values', values);
+							metricDiv.fadeIn();
+							metricDiv.find('canvas.graph:first').click(function(e) {
+								var context = $(this).get(0).getContext('2d');
+								context.fillStyle = "rgb(255,0,0)";
+								context.clearRect(0, 0, $(this).width(), $(this).height());
+								var re = getCursorPosition(this, e);
+								
+								var blockWidth = $(this).width() / values.length;
+								for(var i = 0; i < values.length; i++) {
+									if(e.offsetX < blockWidth * i) {
+										displayCardMetricsForOffset(card, div, i - 1);
+										return;
+									}
+								}
+								displayCardMetricsForOffset(card, div, values.length - 1);
+							});
+						}
+
+						if(values.length > 1) {
+							var canvas = metricDiv.find('canvas.graph:first');
+							var canvasHeight = canvas.height();
+							var blockWidth = canvas.width() / values.length;
+														
+							var context = canvas.get(0).getContext('2d');
+							if(key == 'gsm_rssi' || key == 'cdma_ecio' || key == 'evdo_dbm' || key == 'evdo_ecio' || key == 'evdo_snr') {
+								var maxValue = 0;
+								for(var i = 0; i < values.length; i++) {
+									if(maxValue < values[i]) {
+										maxValue = Math.round(Math.abs(values[i]));
+									}
+								}
+
+								context.clearRect(0, 0, canvas.width(), canvas.height());
+								for(var i = 0; i < values.length; i++) {
+									var v = (30.0/maxValue) * values[i];
+									if(offset >= 0 && i == offset || (offset == -1 && i == values.length - 1)) {
+										context.fillStyle = "rgb(140,0,0)";										
+									} else {
+										context.fillStyle = "rgb(230,230,230)";
+									}
+									context.fillRect(i * blockWidth + 1, canvasHeight - v, blockWidth, v);
+								}								
+							} else {
+								var lastValue = -1;
+								context.clearRect(0, 0, canvas.width(), canvas.height());
+								context.strokeStyle = "rgb(245,245,245)";
+								context.moveTo(0, 15);
+								context.lineTo(canvas.width(), 15);
+								context.stroke();
+								for(var i = 0; i < values.length; i++) {
+									if(offset >= 0 && i == offset || (offset == -1 && i == values.length - 1)) {
+										context.fillStyle = "rgb(140,0,00)";										
+									} else {
+										context.fillStyle = "rgb(230,230,230)";
+									}
+									if(lastValue != values[i] || i == offset || i == 0 || i == values.length - 1) {
+										context.beginPath();
+										context.arc(i * blockWidth + blockWidth - blockWidth/2, 15, 3, 0, Math.PI*2, true);
+										context.closePath();
+										context.fill();
+									}
+									lastValue = values[i];
+								}								
+							}
+							
+							canvas.show();
+						}
+						
+						if(key == 'loc' || key == 'cell_cdma_loc') {
+              if(lat != -1 && lon != -1) {
+  							metricDiv.find('img.map').attr('src', "http://maps.googleapis.com/maps/api/staticmap?center=" + lat + "," + lon + "&zoom=16&size=" + 415 + "x" + 300 + "&sensor=false&markers=color:red%7Clabel:!%7C" + lat + "," + lon);
+              }
+						}
+						metricDiv.find('div.name:first').html(title);
+						metricDiv.find('div.value:first').html(value + value_units);
+						metricDiv.find('div.description:first').html(description);
+					} else {
+						if(metricDiv.length == 1) {
+							metricDiv.remove();
+						}
+					}
+					return true;
+				}			
+			});
+		}
+		
+		function GuardedPanoptesCardUpdated(cardStateJSON) {
+      try {
+  		  PanoptesCardUpdated(cardStateJSON);
+      } catch(e) {
+        alert(e);
+      }
+    }
+		function PanoptesCardUpdated(cardStateJSON) {
+			if(cardStateJSON == null) {
+				cardStateJSON = Panoptes.getMonitorCardState();
+				cardState = jQuery.parseJSON(cardStateJSON);
+			} else if(typeof cardStateJSON == 'object') {
+				cardState = cardStateJSON;				
+			} else { 
+				cardState = jQuery.parseJSON(cardStateJSON);
+			}
+			counter = counter + 1;
+
+			var timeNow = new Date().getTime();
+			
+ 			var card, div;
+ 			if(cardState.id == "0") {
+ 				card = null;
+				div = $('div#monitor');
+
+				if(lastUpdatedReportCard != null) {
+					if(timeNow - lastUpdatedReportCard < 3000) {
+						if($('div#monitor:first div.status:first').hasClass('bad') == false) {
+							$('div#monitor:first div.status:first').fadeOut(function() {
+								$(this).addClass('bad').html('Current Operator service is unacceptable.').fadeIn();
+							});
+						}
+					} else {
+						if($('div#monitor:first div.status:first').hasClass('bad') == true) {
+							$('div#monitor:first div.status:first').fadeOut(function() {
+								$(this).removeClass('bad').html('Current Operator service is acceptable.').fadeIn();
+							});
+						}
+					}
+				}
+
+				displayCardMetricsForOffset({ state:cardState }, div, -1);
+			} else {
+ 				card = cards[ cardState.id ];
+ 				if(card == null) {
+ 	 				card = new Card(cardState.id);
+ 					card.render();
+ 					card.div.find('div.title').html('Operator Report Card #' + card.id);						
+ 				}
+
+ 				card.state = cardState;
+				div = card.div;
+
+				lastUpdatedReportCard = timeNow;
+
+				displayCardMetricsForOffset(card, div, -1);
+			}
+		}
+		var cards = {};
+		var Card = function(arg_id) {
+
+			this.div = null;
+			this.id = parseInt(arg_id);
+			this.advanced = false;
+
+			cards[ this.id ] = this;
+			
+			this.render = function() {
+				var isFirstReportCard = $('div.report').length == 1;
+				var insertBeforeElement = $('div.card.report:first');
+				var newCard = $('div.backing div.card:last').clone();
+				newCard.css('display', 'none');
+				newCard.find('div.paper').css('opacity', '0.0');
+				newCard = newCard.insertBefore(insertBeforeElement);
+				if(!isFirstReportCard) {
+					$('html,body').animate({
+						scrollTop: insertBeforeElement.offset().top - 125
+					}, 100, function() {
+						newCard.delay(100).slideDown(300, function() {
+							$(this).find('div.paper').delay(100).animate({ opacity: 1.0 });
+						});
+					});
+				} else {
+					newCard.show().find('div.paper').animate({ opacity: 1.0 });
+				}
+				var id = this.id;
+				newCard.find('div.title').click(function(e) {
+					var card = cards[ id ];
+					card.advanced = !card.advanced;
+					PanoptesCardUpdated(card.state);
+				});
+				this.div = newCard;
+			}
+			
+			return this;
+		};
+		$(document).ready(function() {
+/* 			var c = new Card(2);
+			c.render();
+*/			
+			$('div#monitor').click(function() {
+				Panoptes.toggleUnacceptable();
+			});
+
+			if(window.location.search == '?debug') {
+				setInterval("syntheticMonitorCardUpdate()", 1000);
+      } else if(window.location.search == '?debug2') {
+        var cardState = {"id":["0"], "gsm_rssi":[666]};
+			  PanoptesCardUpdated(cardState);
+			}
+  		});
+		
+		function roundNumber(num, dec) {
+			var result = Math.round(num*Math.pow(10,dec))/Math.pow(10,dec);
+			return result;
+		}
+		
+		function getCursorPosition(canvas, event) {
+			var x, y;
+
+			canoffset = $(canvas).offset();
+			x = event.pageX + document.body.scrollLeft + document.documentElement.scrollLeft - Math.floor(canoffset.left);
+			y = event.pageY + document.body.scrollTop + document.documentElement.scrollTop - Math.floor(canoffset.top) + 1;
+
+			return [x,y];
+		}
+
+    var numSyntheticDataPoints = 1;
+		
+		function syntheticMonitorCardUpdate() {
+			var cardState = {"id":["0"], "gsm_rssi":[Math.floor(Math.random() * 99)],"gsm_ber":[Math.floor(Math.random() * 99)],"last_updated":[new Date().toUTCString()]};
+			PanoptesCardUpdated(cardState);
+
+        numSyntheticDataPoints++;
+				var ts = [];
+				var m = 52;
+				var s = 0;
+				for(i = 0; i < numSyntheticDataPoints; i++) {
+					if(s < 10) { pad = "0"; } else { pad = ""; }
+					ts[i] = "25th Nov 2011 18:" + m + ":" + pad + s + " GMT+0";
+					s = s + 1;
+					if(s > 59) { m = m + 1; s = 0; }
+				}
+				
+				var gsm_rssi = [];
+				var i;
+				for(i = 0; i < numSyntheticDataPoints; i++) {
+					r = Math.floor(Math.random() * 10);
+          if(i == 0 || r == 1) {
+  					gsm_rssi[i] = Math.floor(Math.random() * 99);
+          } else {
+            gsm_rssi[i] = gsm_rssi[i - 1];
+          }
+				}
+				var gsm_ber = [];
+				for(i = 0; i < numSyntheticDataPoints; i++) {
+					r = Math.floor(Math.random() * 10);
+          if(i == 0 || r == 1) {
+  					gsm_ber[i] = Math.floor(Math.random() * 99);
+          } else {
+  					gsm_ber[i] = gsm_ber[i - 1];
+          }
+				}
+
+				var loc = [];
+				var r = 0;
+				for(i = 0; i < numSyntheticDataPoints; i++) {
+					r = Math.floor(Math.random() * 100);
+          if(i == 0) {
+						loc[i] = roundNumber(Math.random() * 99, 3) + "," + roundNumber(Math.random() * 99, 2);
+						loc[i] = "-1,-1";
+					} else {
+						loc[i] = loc[i - 1];
+					}
+				}
+
+				var rssi = Math.floor(Math.random() * 99);
+				cardState = {"id":"1", "test":3, "loc":loc, "gsm_rssi":gsm_rssi,"gsm_ber":gsm_ber,"ts":ts,datums:r.length,
+						"a0": 1,		
+						"a1": 1,		
+						"a2": 1,		
+						"a3": 1,	
+						"a4": 1,		
+						"a5": 1,		
+						"a6": 1,		
+						"a7": 1,		
+						"a8": 1,		
+						"a9": 1
+				};
+				PanoptesCardUpdated(cardState);				
+		}
+	</script>
+</head>
+<body>
+<div class="backing">
+	<div id="monitor" class="card">
+		<div class="paper">
+			<div class="topcut"></div>
+			<div class="texture">
+				<div class="content">
+					<div class="title">Real-time Analytics</div>
+					<div class="updated time"><b>Updated:&nbsp;</b><span class="value">25th Nov 2011 18:20:22 GMT+0</span></div>
+					<div class="metrics">
+						<div class="metric" style="display: none;">
+							<div class="name">Name</div>
+							<div class="value">Value</div>
+							<div class="description">Description</div>
+						</div>
+					</div>
+					<div class="status">
+						Current Operator service is acceptable.
+					</div>
+				</div>
+			</div>
+			<div class="botcut"></div>
+		</div>
+	</div>
+	<div class="card report" style="display: none;">
+		<div class="paper">
+			<div class="topcut"></div>
+			<div class="texture">
+				<div class="content">
+					<div class="title">Operator Report Card #</div>
+					<div class="period_from time"><b>From:&nbsp;</b><span class="value">25th Nov 2011 18:20:22 GMT+0</span></div>
+					<div class="period_to time"><b>To:&nbsp;</b><span class="value">25th Nov 2011 18:22:22 GMT+0</span></div>
+					<div class="metrics">
+						<div class="metric generic" style="display: none;">
+							<div class="name">Name</div>
+							<div class="value">Value</div>
+							<div class="description">Description</div>
+							<canvas class="graph" width="415" height="30"></canvas>
+						</div>
+						<div class="metric location" style="display: none;">
+							<div class="name">Name</div>
+							<div class="value">Value</div>
+							<div class="description">Description</div>
+							<img class="map" src="#"/>
+							<canvas class="graph" width="415" height="30"></canvas>
+						</div>
+					</div>
+					<div class="showing time">
+						<b>Showing Data Point:&nbsp;</b><span class="value">25th Nov 2011 18:22:22 GMT+0</span>
+					</div>
+					<div class="status">
+					</div>
+					<div class="qc_rejected"></div>
+				</div>
+			</div>
+			<div class="botcut"></div>
+		</div>
+	</div>
+	<div class="debug">
+	</div>
+</div>
+</body>
+</html>

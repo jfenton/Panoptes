@@ -53,7 +53,7 @@ public class PanoptesMonitorCardDataView extends PanoptesCardDataView {
 		cd.rawValue = randomInt;
 		cds.add(cd);
 
-		cda = new CardDataAdapter(cds, context);
+		cda = new PanoptesCardDataView.CardDataAdapter(context);
 		ListView lv = (ListView) findViewById(R.id.card_datums);
 		setAdapter(cda);
 	}

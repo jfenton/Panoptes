@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -14,6 +15,8 @@ import com.jfenton.panoptes.utils.googlemaps.Track;
 import com.jfenton.panoptes.utils.googlemaps.Trackpoint;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -39,8 +42,10 @@ public class PanoptesCardDataView extends ListView {
 	Context context;
 	private PanoptesDatabaseHelper dbHelper;
 	private SQLiteDatabase db;
+	private Cursor cursor;
+
 	protected Boolean initialised = false;
-	
+
 	public PanoptesCardDataView(Context context) {
 		super(context);
 		this.context = context;
@@ -58,50 +63,26 @@ public class PanoptesCardDataView extends ListView {
 
 	public void onFinishInflate() {
 		super.onFinishInflate();
-		if(!initialised) {
+		if (!initialised) {
 			cds = new ArrayList<CardData>();
-	
-			Random randomGenerator = new Random();
-	
-			CardData cd = new CardData();
-			cd.title = "Signal Stength";
-			cd.subtitle = "RSSI (Received Signal Strength Indicator)";
-			int randomInt = randomGenerator.nextInt(31);
-			cd.value = randomInt + " dBm";
-			cd.rawValue = randomInt;
-			cds.add(cd);
-	
-			cd = new CardData();
-			cd.title = "Signal : Noise Ratio";
-			cd.subtitle = "Ec/lo (Rx energy vs. Interference level)";
-			randomInt = randomGenerator.nextInt(5);
-			cd.value = randomInt + " db*10";
-			cd.rawValue = randomInt;
-			cds.add(cd);
-	
-			cd = new CardDataLocation();
-			cd.title = "Location";
-			randomInt = randomGenerator.nextInt(8);
-			cd.subtitle = "Latitude, Longitude accurate to within " + randomInt + " meters";
-			cd.value = "51.30N 0.7W";
-			cd.rawValue = -1;
-			cds.add(cd);
-	
-			cda = new CardDataAdapter(cds, context);
-			ListView lv = (ListView) findViewById(R.id.card_datums);
+
+			cda = new CardDataAdapter(context);
 			setAdapter(cda);
 			
+//			LinearLayout ll = (LinearLayout)this.getParent(); // TODO: Bit fragile..
+//			Log.e("Panoptes", "PARENT IS " + this.getParent());
+//			this.setTag(ll.getTag());
+
 			initialised = true;
 		}
 	}
 
 	public class CardDataAdapter extends BaseAdapter {
 
-		private List<CardData> cds;
+		private Integer cardId;
 		private Context context;
 
-		public CardDataAdapter(List<CardData> cds, Context context) {
-			this.cds = cds;
+		public CardDataAdapter(Context context) {
 			this.context = context;
 		}
 
@@ -119,30 +100,53 @@ public class PanoptesCardDataView extends ListView {
 
 		public View getView(int position, View convertView, ViewGroup parent) {
 			// if(convertView == null) {
-			CardData cd = cds.get(position);
+
+			HashMap<String, String> kvs = new HashMap<String, String>();
+			
+			Integer cardId = 1; // (Integer)parent.getTag();
+			Log.v("Panoptes", "getView tag parent is " + cardId);
+			Cursor c = (Cursor) PanoptesMapActivity.db.query("datums", PanoptesDatabaseHelper.datumFields, "_id=?", new String[] { cardId.toString() }, null, null, "_id ASC");
+			c.moveToFirst();
+			while (c.isAfterLast() == false) {
+				String key = c.getString(c.getColumnIndex("key"));
+				String value = c.getString(c.getColumnIndex("value"));
+				kvs.put(key, value);
+				c.moveToNext();
+			}
 
 			int resource = R.layout.card_data;
-			if (cd.type == CardDataType.LOCATION) {
+			if(kvs.containsKey("loc")) {
 				resource = R.layout.card_data_location;
 			}
 
 			LinearLayout ll = (LinearLayout) LayoutInflater.from(context).inflate(resource, parent, false);
 
-			if (cd.type == CardDataType.LOCATION) {
-				CardDataLocation cdl = (CardDataLocation) cd;
-				cdl.addViews(ll);
+			TextView tv;
+			if(kvs.containsKey("rssi")) {
+				tv = (TextView) ll.findViewById(R.id.title);
+				tv.setText("Signal Strength");
+				tv = (TextView) ll.findViewById(R.id.subtitle);
+				tv.setText("RSSI (Received Signal Strength Indicator)");
+				tv = (TextView) ll.findViewById(R.id.value);
+				String value = kvs.get("rssi");
+				tv.setText(value);
 			}
-
-			TextView tv = (TextView) ll.findViewById(R.id.title);
-			tv.setText(cd.title);
-			tv = (TextView) ll.findViewById(R.id.subtitle);
-			tv.setText(cd.subtitle);
-			tv = (TextView) ll.findViewById(R.id.value);
-			tv.setText(cd.value);
-
-			if (cd.rawValue != -1 && cd.rawValue <= 10) {
-				tv.setTextColor(Color.RED);
-			}
+//			if(kvs.containsKey("eclo")) {
+//			}
+//			if(key.equals("loc")) {
+//				CardDataLocation cdl = (CardDataLocation) cd;
+//				cdl.addViews(ll);
+//			}
+//			TextView tv = (TextView) ll.findViewById(R.id.title);
+//			tv.setText(cd.title);
+//			tv = (TextView) ll.findViewById(R.id.subtitle);
+//			tv.setText(cd.subtitle);
+//			tv = (TextView) ll.findViewById(R.id.value);
+//			tv.setText(cd.value);
+//
+//			if (cd.rawValue != -1 && cd.rawValue <= 10) {
+//				tv.setTextColor(Color.RED);
+//			}
 
 			return ll;
 			// } else {

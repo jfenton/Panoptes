@@ -5,6 +5,7 @@ import java.util.List;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
 import android.util.AttributeSet;
@@ -21,12 +22,14 @@ public class PanoptesCardView extends ListView {
 
 	public static Context context;
 	public static PanoptesMonitorCard monitorCard;
+	public static PanoptesMonitorCard getMonitorCard() {
+//		if(monitorCard == null)
+//			monitorCard = new PanoptesMonitorCard();
+		return monitorCard;
+	}
 	public List<PanoptesCard> cards;
-	public static long nextCardIndex = 1;
+	public static long nextCardIndex = 0;
 	private static final String fields[] = { "cardId", "fromPeriod", "toPeriod", "lastSynchronised" };
-
-	private PanoptesDatabaseHelper dbHelper;
-	private SQLiteDatabase db;
 
 	public PanoptesCardView(Context ctx) {
 		super(ctx);
@@ -48,27 +51,19 @@ public class PanoptesCardView extends ListView {
 
 	public void onFinishInflate() {
 		super.onFinishInflate();
-
-		dbHelper = new PanoptesDatabaseHelper(context);
-		db = dbHelper.getWritableDatabase();
-
-		Cursor data = db.query("cards", fields, null, null, null, null, null);
-//		dataSource = new SimpleCursorAdapter(this, R.layout.row, data, fields, new int[] { R.id.first, R.id.last });
-
-		cards = new ArrayList<PanoptesCard>();
-		PanoptesCardView.monitorCard = new PanoptesMonitorCard();
-		cards.add(PanoptesCardView.monitorCard);
 		
-		PanoptesCard c = new PanoptesCard();
-		cards.add(c);
+		PanoptesCardCursorFactory cf = new PanoptesCardCursorFactory();
+		PanoptesDatabaseHelper dbHelper = new PanoptesDatabaseHelper(this.context, cf);
+		SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-		c = new PanoptesCard();
-		cards.add(c);
+		SQLiteCursor cursor = (SQLiteCursor)db.query("cards", PanoptesDatabaseHelper.cardFields, null, null, null, null, "_id ASC");
+		// TODO: startManagingCursor(cursor);
 
-		c = new PanoptesCard();
-		cards.add(c);
-
-		CardAdapter adapter = new CardAdapter(this, cards);
+		PanoptesCardCursorWindow window = new PanoptesCardCursorWindow(false);
+		cursor.setWindow(window);
+		
+		PanoptesCardAdapter adapter = new PanoptesCardAdapter(this.context, cursor);
+		// CardAdapter adapter = new CardAdapter(this, cards);
 		setAdapter(adapter);
 	}
 
