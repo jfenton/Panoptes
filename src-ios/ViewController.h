@@ -8,6 +8,7 @@
 	CLLocationManager *_locationManager;
 	NSTimer *_timer;
 	NSMutableDictionary *data;
+	NSMutableDictionary *activeReportCard;
 	int (*CTGetSignalStrength)();
 	void *libHandle;
 }
@@ -17,6 +18,7 @@
 - (void)timerFired:(NSTimer *)timer;
 
 @property (nonatomic, retain) NSMutableDictionary *data;
+@property (nonatomic, retain) NSMutableDictionary *activeReportCard;
 @property (nonatomic, retain) UIWebView *webView;
 @property (nonatomic, retain) NSTimer *timer;
 @property (nonatomic, retain) CLLocationManager *locationManager;
