@@ -11,6 +11,8 @@
 
 @synthesize webView = _webView;
 @synthesize timer = _timer;
+@synthesize locationManager = _locationManager;
+@synthesize data = _data;
 
 CFMachPortRef port;
 struct CTServerConnection *sc=NULL;
@@ -30,6 +32,11 @@ int t1;
 {
     [super viewDidLoad];
 	[[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent animated:YES];
+	
+	self.locationManager = [[CLLocationManager alloc] init];
+	self.locationManager.delegate = self;
+    self.locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters;
+    self.locationManager.distanceFilter = 500;
 	
 	[self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"index" ofType:@"html"]isDirectory:NO]]];	
 }
@@ -145,31 +152,69 @@ int t1;
 	[dateFormatter setDateStyle:NSDateFormatterMediumStyle];
 	NSString *fireDateStr = [dateFormatter stringFromDate:[timer fireDate]];
 
-	NSDictionary *data = [NSDictionary dictionaryWithObjectsAndKeys:@"0", @"id",signalStrengthStr, @"gsm_rssi", fireDateStr, @"last_updated", nil];
+	if(data == nil) {		
+		data = [NSMutableDictionary dictionaryWithObjectsAndKeys:@"0", @"id",fireDateStr, @"last_updated", nil];
+	}
+	[data setObject:signalStrengthStr forKey:@"gsm_rssi"];
+	[data setObject:fireDateStr forKey:@"last_updated"];
+
 	NSError *error = nil;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:NSJSONWritingPrettyPrinted error:&error];
 	
     NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-	NSString * encodedString = (__bridge NSString *)CFURLCreateStringByAddingPercentEscapes(
-																							NULL,
-																							(__bridge CFStringRef)jsonString,
-																							NULL,
-																							(CFStringRef)@"!*'();:@&=+$,/?%#[]",
-																							kCFStringEncodingUTF8 );
 	[self.webView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@"GuardedPanoptesCardUpdated(%@);", jsonString]];
 	
 	if(signalStrength < 14) {
-		data = [NSDictionary dictionaryWithObjectsAndKeys:@"1", @"id",signalStrengthStr, @"gsm_rssi", fireDateStr, @"last_updated", nil];
+		
+		[self.locationManager startMonitoringSignificantLocationChanges];
+		
+		[data setObject:signalStrengthStr forKey:@"gsm_rssi"];
+		[data setObject:fireDateStr forKey:@"last_updated"];
+
 		jsonData = [NSJSONSerialization dataWithJSONObject:data options:NSJSONWritingPrettyPrinted error:&error];
 		jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-		encodedString = (__bridge NSString *)CFURLCreateStringByAddingPercentEscapes(
-																								NULL,
-																								(__bridge CFStringRef)jsonString,
-																								NULL,
-																								(CFStringRef)@"!*'();:@&=+$,/?%#[]",
-																								kCFStringEncodingUTF8 );
+
 		[self.webView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@"GuardedPanoptesCardUpdated(%@);", jsonString]];
 	}
+}
+
+- (void)locationManager:(CLLocationManager *)manager
+    didUpdateToLocation:(CLLocation *)newLocation
+		   fromLocation:(CLLocation *)oldLocation
+{
+    // If it's a relatively recent event, turn off updates to save power
+
+    NSDate* eventDate = newLocation.timestamp;
+    NSTimeInterval howRecent = [eventDate timeIntervalSinceNow];
+
+	NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+	[dateFormatter setTimeStyle:NSDateFormatterLongStyle];
+	[dateFormatter setDateStyle:NSDateFormatterMediumStyle];
+	NSString *eventDateStr = [dateFormatter stringFromDate:eventDate];
+
+	CLLocationCoordinate2D loc = [newLocation coordinate];
+	NSString *latLongStr = [NSString stringWithFormat:@"%f,%f@%d", loc.latitude, loc.longitude, newLocation.horizontalAccuracy];
+
+	NSMutableDictionary *reportCardData = [data mutableCopy];
+	[reportCardData setObject:@"1" forKey:@"id"];
+	[reportCardData setObject:latLongStr forKey:@"loc"];
+	[reportCardData setObject:eventDateStr forKey:@"last_updated"];
+
+	NSError *error = nil;
+	
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:reportCardData options:NSJSONWritingPrettyPrinted error:&error];
+	
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+	[self.webView stringByEvaluatingJavaScriptFromString:[NSString stringWithFormat:@"GuardedPanoptesCardUpdated(%@);", jsonString]];
+
+	NSLog(@"latitude %+.6f, longitude %+.6f\n",
+		  newLocation.coordinate.latitude,
+		  newLocation.coordinate.longitude);
+
+	if (abs(howRecent) < 15.0)
+    {
+    }
+    // else skip the event and process the next one.
 }
 
 @end

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		513016CE14B5D69A00EDBBCE /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 513016CD14B5D69A00EDBBCE /* CoreLocation.framework */; };
 		515B0D7514B5BB370030FD0E /* jquery.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 5183855D14B57AA200AC3B9D /* jquery.min.js */; };
 		5183851814B54AAE00AC3B9D /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5183851714B54AAE00AC3B9D /* UIKit.framework */; };
 		5183851A14B54AAE00AC3B9D /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5183851914B54AAE00AC3B9D /* Foundation.framework */; };
@@ -34,6 +35,7 @@
 
 /* Begin PBXFileReference section */
 		513016CC14B5C20F00EDBBCE /* CoreTelephony.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CoreTelephony.h; sourceTree = "<group>"; };
+		513016CD14B5D69A00EDBBCE /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		5183851314B54AAE00AC3B9D /* Panoptes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Panoptes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5183851714B54AAE00AC3B9D /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		5183851914B54AAE00AC3B9D /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -77,6 +79,7 @@
 				5183851814B54AAE00AC3B9D /* UIKit.framework in Frameworks */,
 				5183851A14B54AAE00AC3B9D /* Foundation.framework in Frameworks */,
 				5183851C14B54AAE00AC3B9D /* CoreGraphics.framework in Frameworks */,
+				513016CE14B5D69A00EDBBCE /* CoreLocation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,6 +108,7 @@
 		5183851614B54AAE00AC3B9D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				513016CD14B5D69A00EDBBCE /* CoreLocation.framework */,
 				5183851714B54AAE00AC3B9D /* UIKit.framework */,
 				5183851914B54AAE00AC3B9D /* Foundation.framework */,
 				5183851B14B54AAE00AC3B9D /* CoreGraphics.framework */,
@@ -155,6 +159,7 @@
 		5183855414B57AA200AC3B9D /* assets */ = {
 			isa = PBXGroup;
 			children = (
+				5183855C14B57AA200AC3B9D /* index.html */,
 				5183855514B57AA200AC3B9D /* backing.png */,
 				5183855614B57AA200AC3B9D /* card_backing.png */,
 				5183855714B57AA200AC3B9D /* card_backing_body.png */,
@@ -162,13 +167,12 @@
 				5183855914B57AA200AC3B9D /* greendot.png */,
 				5183855A14B57AA200AC3B9D /* header.png */,
 				5183855B14B57AA200AC3B9D /* icon.png */,
-				5183855C14B57AA200AC3B9D /* index.html */,
-				5183855D14B57AA200AC3B9D /* jquery.min.js */,
 				5183855E14B57AA200AC3B9D /* loader.gif */,
 				5183855F14B57AA200AC3B9D /* monitor_backing.png */,
 				5183856014B57AA200AC3B9D /* monitor_backing_body.png */,
 				5183856114B57AA200AC3B9D /* monitor_backing_cut.png */,
 				5183856214B57AA200AC3B9D /* qc_rejected.png */,
+				5183855D14B57AA200AC3B9D /* jquery.min.js */,
 			);
 			path = assets;
 			sourceTree = "<group>";
