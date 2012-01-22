@@ -20,7 +20,8 @@ import android.app.AlarmManager;
 
 public class PanoptesConstants {
   
-  public static boolean DEVELOPER_MODE = true;
+	public static String UPLINK_URI = "http://192.168.1.50:8081/telemetry"; 
+	public static boolean DEVELOPER_MODE = true;
   
   // The default search radius when searching for places nearby.
   public static int DEFAULT_RADIUS = 150;
@@ -82,9 +83,9 @@ public class PanoptesConstants {
   public static String ARGUMENTS_KEY_REFERENCE = "reference";
   public static String ARGUMENTS_KEY_ID = "id";
   
-  public static String NEW_CHECKIN_ACTION = "com.radioactiveyak.places.NEW_CHECKIN_ACTION";
-  public static String RETRY_QUEUED_CHECKINS_ACTION = "com.radioactiveyak.places.retry_queued_checkins";
-  public static String ACTIVE_LOCATION_UPDATE_PROVIDER_DISABLED = "com.radioactiveyak.places.active_location_update_provider_disabled";
+  public static String NEW_CHECKIN_ACTION = "com.jfenton.panoptes.places.NEW_CHECKIN_ACTION";
+  public static String RETRY_QUEUED_CHECKINS_ACTION = "com.jfenton.panoptes.places.RETRY_QUEUED_CHECKINS";
+  public static String ACTIVE_LOCATION_UPDATE_PROVIDER_DISABLED = "com.jfenton.panoptes.places.active_location_update_provider_disabled";
   
   public static boolean SUPPORTS_GINGERBREAD = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.GINGERBREAD;
   public static boolean SUPPORTS_HONEYCOMB = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB;

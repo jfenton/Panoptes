@@ -1,8 +1,14 @@
 package com.jfenton.panoptes;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Observable;
@@ -35,14 +41,21 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Picture;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.PictureDrawable;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -144,6 +157,7 @@ public class PanoptesWebActivity extends Activity {
 		mWebView.setHorizontalScrollbarOverlay(true);
 		mWebView.setBackgroundColor(Color.BLACK);
 		mWebView.setScrollBarStyle(WebView.SCROLLBARS_INSIDE_OVERLAY);
+		mWebView.getSettings().setLightTouchEnabled(true);
 		mWebView.addJavascriptInterface(new PanoptesWebBridge(this), "Panoptes");
 		mWebView.setWebChromeClient(new WebChromeClient() {
 			public void onConsoleMessage(String message, int lineNumber, String sourceID) {
@@ -504,6 +518,38 @@ public class PanoptesWebActivity extends Activity {
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			}			
+		}
+		
+		public void sendFeedback() {
+			Intent emailIntent = new Intent(android.content.Intent.ACTION_SEND);  
+			String aEmailList[] = { "na.nu@na.nu" };  			  
+			emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, aEmailList);  
+			
+			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+			String now = sdf.format(new Date());
+			
+			emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Panoptes Bug Report " + now);  
+			emailIntent.setType("plain/text");
+			// emailIntent.putExtra(android.content.Intent.EXTRA_TEXT, "");  
+
+			String screenshotFilename = Environment.getExternalStorageDirectory().getAbsolutePath() + "/PanoptesScreenshot.png";
+			
+			Picture screenshot = mWebView.capturePicture();
+			try {
+				PictureDrawable pictureDrawable = new PictureDrawable(screenshot);
+				Bitmap bmp = Bitmap.createBitmap(pictureDrawable.getIntrinsicWidth(),pictureDrawable.getIntrinsicHeight(), Config.ARGB_8888);
+		        Canvas canvas = new Canvas(bmp);
+		        canvas.drawPicture(pictureDrawable.getPicture());
+				FileOutputStream out = new FileOutputStream(screenshotFilename);
+				bmp.compress(Bitmap.CompressFormat.PNG, 95, out); 
+				out.close();
+				emailIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(new File(Environment.getExternalStorageDirectory(), "/PanoptesScreenshot.png")));
+				emailIntent.setType("image/png");				
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+			
+			startActivity(emailIntent);
 		}
 	}
 

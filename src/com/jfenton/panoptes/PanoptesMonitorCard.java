@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.json.JSONObject;
 
 import com.jfenton.panoptes.PanoptesWebActivity.PanoptesWebActivityIncomingHandler;
+import com.jfenton.panoptes.services.PlaceCheckinService;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -154,6 +155,7 @@ public class PanoptesMonitorCard extends PanoptesCard {
 							if (!disconnectCause.equals("LOCAL")) {
 								Log.e("PanoptesLogcatTailerThread", "Creating report card due to " + disconnectCause);
 								activeReportCard = new PanoptesCard();
+								activeReportCard.put("type", "dropped_call");
 								activeReportCard.put("period_from", new Date());
 								activeReportCard.put("period_to", new Date());
 								// Populate Report Card
@@ -399,7 +401,9 @@ public class PanoptesMonitorCard extends PanoptesCard {
 			}
 
 			if (!pmc.isAcceptable() && activeReportCard == null) {
+				Log.e("Panoptes", "Creating new report card");
 				activeReportCard = new PanoptesCard();
+				activeReportCard.put("type", "signal");
 				activeReportCard.put("period_from", new Date());
 
 				if (signalStrength.isGsm()) {
@@ -452,16 +456,24 @@ public class PanoptesMonitorCard extends PanoptesCard {
 			}
 
 			if (activeReportCard != null) {
+				Log.e("Panoptes", "Updating report card");
 				activeReportCard.put(pmc.activeData);
 				activeReportCard.put("period_to", new Date());
 				activeReportCard.snapshot();
 				pmc.pmcs.publishCard(activeReportCard);
 
 				long window = pmc.getMillisecondsSinceLastUnacceptable();
+				Log.e("Panoptes", "Window is " + window);
 				if (window > 15000) {
 					activeReportCard = null;
 					lm.removeUpdates(pmc.locationListener);
-					Log.e("Panoptes", "Report card complete. Disabled location updates.");
+					Log.e("Panoptes", "Report card complete. Disabled location updates, and queueing card for uplink.");
+					
+				    Intent checkinServiceIntent = new Intent(pmc.context, PlaceCheckinService.class);
+				      checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_REFERENCE, "123");
+				      checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_ID, "123");
+				      checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_TIME_STAMP, System.currentTimeMillis());
+				      pmc.context.startService(checkinServiceIntent);
 				}
 			}
 

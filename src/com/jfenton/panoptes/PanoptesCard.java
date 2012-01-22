@@ -149,10 +149,13 @@ public class PanoptesCard {
 
 	public Boolean isAcceptable() {
 		if(forceUnacceptable == true) {
+			Log.e("Panoptes", "isAcceptable is forced to unacceptable");
 			last_unacceptable = new Date();
+			forceUnacceptable = false;
 			return false;
 		}
 		if (activeData.containsKey("gsm_rssi")) {
+			Log.e("Panoptes", "isAcceptable is returning based on gsm_rssi");
 			int gsm_rssi = Integer.parseInt(get("gsm_rssi"));
 			/*
 			 * SIGNAL_STRENGTH_NONE_OR_UNKNOWN (99) SIGNAL_STRENGTH_GREAT
@@ -171,8 +174,8 @@ public class PanoptesCard {
 	}
 
 	public long getMillisecondsSinceLastUnacceptable() {
-		if (period_to != null && last_unacceptable != null) {
-			return period_to.getTime() - last_unacceptable.getTime();
+		if (last_unacceptable != null) {
+			return new Date().getTime() - last_unacceptable.getTime();
 		}
 		return 0;
 	}

@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -46,18 +47,18 @@ import android.net.NetworkInfo;
 import android.util.Log;
 
 import com.jfenton.panoptes.PanoptesConstants;
+import com.jfenton.panoptes.content_providers.QueuedCheckinsContentProvider;
 import com.jfenton.panoptes.receivers.ConnectivityChangedReceiver;
-import com.jfenton.panoptes.uplinks.QueuedCheckinsContentProvider;
 import com.jfenton.panoptes.utils.PlatformSpecificImplementationFactory;
 import com.jfenton.panoptes.utils.base.SharedPreferenceSaver;
 
+
 /**
  * Service that notifies the underlying web service to Checkin to the specified venue.
- * TODO Replace or augment with a Service that performs ratings / reviews / etc.
  */
 public class PlaceCheckinService extends IntentService {
   
-  protected static String TAG = "PlaceCheckinService";
+  protected static String TAG = "Panoptes";
   
   protected ContentResolver contentResolver;
   protected ConnectivityManager cm;
@@ -162,11 +163,11 @@ public class PlaceCheckinService extends IntentService {
           Log.d(TAG, "Deleted: " + deleteCount);
         }
         
-        // If there are still queued checkins then set a non-waking alarm to retry them.
+        // If there are still queued check-ins then set a non-waking alarm to retry them.
         queuedCheckins.requery();
         if (queuedCheckins.getCount() > 0) {
           long triggerAtTime = System.currentTimeMillis() + PanoptesConstants.CHECKIN_RETRY_INTERVAL;
-          alarmManager.set(AlarmManager.ELAPSED_REALTIME, triggerAtTime, retryQueuedCheckinsPendingIntent);
+          alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtTime, retryQueuedCheckinsPendingIntent);
         }
         else
           alarmManager.cancel(retryQueuedCheckinsPendingIntent);
@@ -189,27 +190,24 @@ public class PlaceCheckinService extends IntentService {
     if (reference != null) {
       try {
         // Construct the URI required to perform a checkin.
-        // TODO Replace this with the checkin URI for your own web service.
-//        URI uri = new URI(PanoptesConstants.PLACES_CHECKIN_URI);
+        URI uri = new URI(PanoptesConstants.UPLINK_URI);
         
         // Construct the payload
-        // TODO Replace with your own payload
-        StringBuilder postData = new StringBuilder("<CheckInRequest>\n");
-        postData.append("<reference>");
+        StringBuilder postData = new StringBuilder("<UplinkTelemetry>\n");
+        postData.append("<encoded>");
         postData.append(URLEncoder.encode(reference, "UTF-8"));
-        postData.append("</reference>\n");
-        postData.append("</CheckInRequest>");
+        postData.append("</encoded>\n");
+        postData.append("</UplinkTelemetry>");
         
-//        // Construct and execute the HTTP Post 
-//        HttpClient httpClient = new DefaultHttpClient();
-//        HttpPost httppost = new HttpPost(uri);
-//        httppost.setEntity(new StringEntity(postData.toString()));
-//        HttpResponse response = httpClient.execute(httppost);
-//    
-//        // If the post was successful, check if this is the newest checkin, and if so save it and broadcast
-//        // an Intent to notify the application.
-//        if (response.getStatusLine().getReasonPhrase().equals(PanoptesConstants.PLACES_CHECKIN_OK_STATUS)) {
-       	if(true) {
+        // Construct and execute the HTTP Post 
+        HttpClient httpClient = new DefaultHttpClient();
+        HttpPost httppost = new HttpPost(uri);
+        httppost.setEntity(new StringEntity(postData.toString()));
+        HttpResponse response = httpClient.execute(httppost);
+    
+        // If the post was successful, check if this is the newest checkin, and if so save it and broadcast
+        // an Intent to notify the application.
+        if(response.getStatusLine().getStatusCode() == 200) {
           long lastCheckin = sharedPreferences.getLong(PanoptesConstants.SP_KEY_LAST_CHECKIN_TIMESTAMP, 0);
           if (timeStamp > lastCheckin) {   
             sharedPreferencesEditor.putLong(PanoptesConstants.SP_KEY_LAST_CHECKIN_TIMESTAMP, timeStamp);
@@ -224,12 +222,12 @@ public class PlaceCheckinService extends IntentService {
         // If the checkin fails return false.
         else
           return false;
-//      } catch (ClientProtocolException e) {
-//        Log.e(TAG, e.getMessage());
+      } catch (ClientProtocolException e) {
+        Log.e(TAG, e.getMessage());
       } catch (IOException e) {
         Log.e(TAG, e.getMessage());
-//      } catch (URISyntaxException e) {
-//        Log.e(TAG, e.getMessage());
+      } catch (URISyntaxException e) {
+    	Log.e(TAG, e.getMessage());
       }
     }
     return false;
@@ -251,6 +249,8 @@ public class PlaceCheckinService extends IntentService {
     
     String where = QueuedCheckinsContentProvider.KEY_REFERENCE + " = '" + reference + "'";
 
+    Log.e(TAG, "Queuing checkin for " + reference + "...");
+
     // Update the existing checkin for this venue or add the venue to the queue.
     try {
       if (contentResolver.update(QueuedCheckinsContentProvider.CONTENT_URI, values, where, null) == 0) {
@@ -262,7 +262,7 @@ public class PlaceCheckinService extends IntentService {
     catch (Exception ex) { 
       Log.e(TAG, "Queuing checkin for " + reference + " failed.");
     }
-    
+
     return false;
   }
 }

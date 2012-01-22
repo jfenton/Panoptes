@@ -4,6 +4,9 @@
 	<meta name="viewport" content="width=device-width, target-densityDpi=device-dpi">
 	<script type="text/javascript" src="jquery.min.js"></script>
 	<style type="text/css">
+		* {
+			-webkit-tap-highlight-color: rgba(0, 0, 0, 0);	
+		}
 		div {
 			float: left;
 		}
@@ -17,7 +20,7 @@
 			background-image: url(backing.png);
 			background-repeat: no-repeat;
 			background-position: center bottom;
-			min-height: 900px;
+			padding-bottom: 10px;
 		}
 		div.card {
 			clear: both;
@@ -73,6 +76,29 @@
 			width: 180px;
 			height: 194px;
 		}
+		div.card div.syncstatus {
+			position: relative;
+			top: 14px;
+			left: 8px;
+			float: left;
+			clear: none;
+			width: 10px;
+			height: 10px;
+			display: block;
+			padding-left: 5
+			border-radius:5px;
+			-moz-border-radius:5px;
+			-webkit-border-radius:5px;
+			-khtml-border-radius:5px;
+			background: #8c0000;
+		}
+		div.card div.syncstatus.inflight {
+			background: #999999;
+		}
+		div.card div.syncstatus.yes {
+			background: green;
+		}
+		
 		div.metric canvas.graph {
 			display: none;
 			float: left;
@@ -102,7 +128,6 @@
 			font-size: 22pt;
 			font-weight: bold;
 			margin-bottom: 5px;
-			width: 100%;
 		}
 		div.time {
 			font-size: 15pt;
@@ -153,13 +178,47 @@
 			width: 415px;
 			height: 300px;
 		}
+		div.summary {
+			width: 418px;
+			border: 1px solid #222222;
+			background-color: white;
+			margin-top: 10px;
+			margin-bottom: 10px;
+			padding: 15px;
+		}
+		div.summary div.name {
+			font-size: 18pt;
+			font-weight: bold;
+			float: left;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		div.summary div.value {
+			font-size: 45pt;
+			line-height: 70px;
+			margin-right: 10px;
+			font-weight: bold;
+			float: right;
+			font-weight: bold;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		div.summary div.description {
+			clear: both;
+			font-size: 14pt;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
 		div.location {
 		}
 		div.debug {
 			clear: both;
 			color: white;
 			height: 1000px;
-//			display: none;
+			display: none;
 		}
 		div.buttons {
 			float: left;
@@ -174,6 +233,37 @@
 			padding-left: 15px;
 			padding-right: 15px;
 		}
+		div.summarytext {
+			font-size: 14pt;
+			font-style: italic;
+			line-height: 27pt;
+			width: 440px;
+			text-align: justify;
+			margin-top: 5px;
+			margin-bottom: 15px;
+		}
+		div.summarytext span.summaryTextValue {
+			font-size: 20pt;
+			font-weight: bold;
+			margin-left: 3px;
+			margin-right: 3px;
+		}
+		div.summarytext span.summaryTextValue.disabled {
+		}
+		div.summarytext span.sumaryTextSentence {
+		}
+		div#feedback {
+			float: left;
+			clear: both;
+			width: 100%;
+			text-align: center;
+		}
+		div#feedback input[type="button"] {
+			margin-top: 20px;
+			margin-bottom: 20px;
+			padding: 10px;
+			font-size: 14pt;
+		}
 	</style>
 	<script type="text/javascript">
 		var counter = 0;
@@ -183,7 +273,7 @@
 			return result;
 		}
 		
-		function displayCardMetricsForOffset(card, div, offset) {
+		function displayCardMetricsForOffset(card, div, argOffset) {
  			var cardShouldDisplay = {
  	 				"gsm_rssi":1,
  	 				"cell_gsm_cid":1,
@@ -196,6 +286,15 @@
  	 				"gsm_rssi":1,
  	 				"gsm_ber":1
  	 			};
+
+ 			if(argOffset != null) {
+				card.selectedOffset = argOffset;
+			}
+
+ 			var offset = -1;
+ 			if(card.selectedOffset != null) {
+ 				offset = card.selectedOffset; 
+ 			}
 
 			$.each(card.state, function(key, value) {
 				var values;
@@ -220,6 +319,9 @@
 				} else if(key == 'period_to') {
 					div.find('div.period_to:first span.value:first').html(value);
 					return true;
+				} else if(key == 'type') {
+					div.data('type', value);
+					return true;
 				} else if(key == 'ts') {
 					div.find('div.showing:first span.value:first').html(value);
 					return true;
@@ -230,6 +332,24 @@
 						title = 'Signal Strength';
 						description = 'RSSI (Received Signal Strength Indicator)';
 						value_units = ' dBm';
+						
+						// Compute longest period (minutes) of signal drop-out
+						if(card.summary != null) {
+							var longest = 0;
+							var inDrop = 0;
+							var startDrop = 0;
+							for(var i = 0; i < values.length; i++) {
+								if(value <  3) {
+									// TODO
+									if(inDrop == 0) {
+										inDrop = 1;
+									}
+									longest++;
+								}
+							} 
+							card.summary.longest_signal_dropout_time = longest;
+						}
+						
 					} else if(key == 'so') {
 						title = 'SIM Operator';
 						description = 'MCC + MNC of the provider of the SIM.';
@@ -366,29 +486,36 @@
 							} else {
 								metricDiv = div.find('div.metric:first').clone();
 							}
-							metricDiv.addClass(key);
-							metricDiv.appendTo(div.find('div.metrics'));
 							
+							metricDiv.appendTo(div.find('div.metrics'));
+
+							metricDiv.addClass(key);
+							metricDiv.data('cardId', card.id);
+							metricDiv.data('div', div);
 							metricDiv.data('values', values);
-							metricDiv.fadeIn();
-							metricDiv.find('canvas.graph:first').click(function(e) {
+							metricDiv.find('canvas.graph:first').click(function(e) {								
+								var clickedMetricDiv = $(e.target).parents('div.metric');
+								var values = metricDiv.data('values');
 								var context = $(this).get(0).getContext('2d');
 								context.fillStyle = "rgb(255,0,0)";
 								context.clearRect(0, 0, $(this).width(), $(this).height());
 								var re = getCursorPosition(this, e);
-								
-								var blockWidth = $(this).width() / values.length;
+									var blockWidth = $(this).width() / values.length;
 								for(var i = 0; i < values.length; i++) {
-									if(e.offsetX < blockWidth * i) {
-										displayCardMetricsForOffset(card, div, i - 1);
+									if(e.offsetX < blockWidth * (i + 1)) {
+										displayCardMetricsForOffset(card, div, i);
 										return;
 									}
 								}
 								displayCardMetricsForOffset(card, div, values.length - 1);
 							});
+							
+							metricDiv.fadeIn();
 						}
 
-						if(values.length > 1) {
+						if(values.length > 1) {							
+							metricDiv.data('values', values);
+							
 							var canvas = metricDiv.find('canvas.graph:first');
 							var canvasHeight = canvas.height();
 							var blockWidth = canvas.width() / values.length;
@@ -421,7 +548,7 @@
 								context.stroke();
 								for(var i = 0; i < values.length; i++) {
 									if(offset >= 0 && i == offset || (offset == -1 && i == values.length - 1)) {
-										context.fillStyle = "rgb(140,0,00)";										
+										context.fillStyle = "rgb(140,0,0)";										
 									} else {
 										context.fillStyle = "rgb(230,230,230)";
 									}
@@ -439,9 +566,9 @@
 						}
 						
 						if(key == 'loc' || key == 'cell_cdma_loc') {
-              if(lat != -1 && lon != -1) {
-  							metricDiv.find('img.map').attr('src', "http://maps.googleapis.com/maps/api/staticmap?center=" + lat + "," + lon + "&zoom=16&size=" + 415 + "x" + 300 + "&sensor=false&markers=color:red%7Clabel:!%7C" + lat + "," + lon);
-              }
+							if(lat != -1 && lon != -1) {
+								metricDiv.find('img.map').attr('src', "http://maps.googleapis.com/maps/api/staticmap?center=" + lat + "," + lon + "&zoom=16&size=" + 415 + "x" + 300 + "&sensor=false&markers=color:red%7Clabel:!%7C" + lat + "," + lon);
+							}
 						}
 						metricDiv.find('div.name:first').html(title);
 						metricDiv.find('div.value:first').html(value + value_units);
@@ -454,15 +581,105 @@
 					return true;
 				}			
 			});
+			if(card.id == "0") {
+				// NOOP
+			} else {
+	 			updateSummaryReport();				
+			}
+		}
+
+		var summaries = [
+    		{
+   				name: 'total_accumulated_hours',
+   				title: 'Accumulated Hours',
+   				description: 'of Panoptes data.',
+   				value: function(valueDiv) {
+   					var value = 0;
+   					for(card in cards) { if(cards[card].state['type'] == 'dropped_call') { value++; } }
+   					if(value > 0) {
+	   					valueDiv.data('value', value);
+	   					if(valueDiv.html() != value) {
+	   						valueDiv.fadeOut(function() { $(this).html($(this).data('value')); $(this).fadeIn(); });
+	   					}
+	   					$('span.summaryAccumulatedHours').find('span.summaryTextValue').html(value).parent().fadeIn();
+   					}
+   				}
+   			},
+		    {
+				name: 'avg_dropped_calls',
+				title: '# Dropped Calls',
+				description: 'due to insufficient network coverage.',
+				value: function(valueDiv) {
+					var value = 0;
+					for(card in cards) { if(cards[card].state['type'] == 'dropped_call') { value++; } }
+   					if(value > 0) {
+						valueDiv.data('value', value);
+						if(valueDiv.html() != value) {
+							valueDiv.fadeOut(function() { $(this).html($(this).data('value')); $(this).fadeIn(); });
+						}
+	   					$('span.summaryTotalDroppedCalls').find('span.summaryTextValue').html(value).parent().fadeIn();
+   					}
+				}
+			},
+			{
+				name: 'longest_signal_dropout_time',
+				title: 'Longest No Signal Period',
+				description: 'in minutes.',
+				value: function(valueDiv) {
+					var value = 0;
+					for(card in cards) { if(cards[card].summary.longest_signal_dropout_time > value) { value = cards[card].summary.longest_signal_dropout_time; } }
+					if(value > 0) {
+						valueDiv.data('value', value);
+						if(valueDiv.html() != value) {
+							valueDiv.fadeOut(function() { $(this).html($(this).data('value')); $(this).fadeIn(); });
+						}
+	   					$('span.summaryLongestPeriodNoSignal').find('span.summaryTextValue').html(value).parent().fadeIn();
+					}
+				}
+			},
+			{
+				name: 'signal_dropouts',
+				title: '# Signal Drop-outs',
+				description: '',
+				value: function(valueDiv) {
+					var value = 0;
+					for(card in cards) { if(cards[card].state['type'] == 'signal') { value++; } }
+					if(value > 0) {
+						valueDiv.data('value', value);
+						if(valueDiv.html() != value) {
+							valueDiv.fadeOut(function() { $(this).html($(this).data('value')); $(this).fadeIn(); });
+						}
+	   					$('span.summaryTotalSignalDropouts').find('span.summaryTextValue').html(value).parent().fadeIn();
+					}
+				}
+			}
+		];
+		function updateSummaryReport() {
+			var div = $('div#summary');
+			for(id in summaries) {
+				var summary = summaries[id];
+				var key = summary.name;
+				var summaryDiv = div.find('div.summaries div.summary.' + key + ':first');
+				if(summaryDiv.length == 0) {
+					summaryDiv = div.find('div.summary:first').clone();
+					summaryDiv.addClass(key);
+					summaryDiv.appendTo(div.find('div.summaries:first'));
+					summaryDiv.fadeIn();
+				}
+				summaryDiv.find('div.name:first').html(summary.title);
+				summaryDiv.find('div.description:first').html(summary.description);
+				summary.value(summaryDiv.find('div.value:first'));
+			}
 		}
 		
 		function GuardedPanoptesCardUpdated(cardStateJSON) {
-      try {
-  		  PanoptesCardUpdated(cardStateJSON);
-      } catch(e) {
-        alert(e);
-      }
-    }
+			try {
+				PanoptesCardUpdated(cardStateJSON);
+			} catch(e) {
+				alert(e);
+			}
+	    }
+		
 		function PanoptesCardUpdated(cardStateJSON) {
 			if(cardStateJSON == null) {
 				cardStateJSON = Panoptes.getMonitorCardState();
@@ -497,7 +714,7 @@
 					}
 				}
 
-				displayCardMetricsForOffset({ state:cardState }, div, -1);
+				displayCardMetricsForOffset({ state:cardState }, div);
 			} else {
  				card = cards[ cardState.id ];
  				if(card == null) {
@@ -511,7 +728,7 @@
 
 				lastUpdatedReportCard = timeNow;
 
-				displayCardMetricsForOffset(card, div, -1);
+				displayCardMetricsForOffset(card, div);
 			}
 		}
 		var cards = {};
@@ -520,7 +737,8 @@
 			this.div = null;
 			this.id = parseInt(arg_id);
 			this.advanced = false;
-
+			this.summary = {};
+			
 			cards[ this.id ] = this;
 			
 			this.render = function() {
@@ -559,12 +777,17 @@
 			$('div#monitor').click(function() {
 				Panoptes.toggleUnacceptable();
 			});
-
+			
+			$('div#feedback input:first').click(function() {
+				Panoptes.sendFeedback();
+			});
+							
 			if(window.location.search == '?debug') {
 				setInterval("syntheticMonitorCardUpdate()", 1000);
       } else if(window.location.search == '?debug2') {
         var cardState = {"id":["0"], "gsm_rssi":[666]};
 			  PanoptesCardUpdated(cardState);
+			  syntheticMonitorCardUpdate();
 			}
   		});
 		
@@ -583,7 +806,7 @@
 			return [x,y];
 		}
 
-    var numSyntheticDataPoints = 1;
+    var numSyntheticDataPoints = 20;
 		
 		function syntheticMonitorCardUpdate() {
 			var cardState = {"id":["0"], "gsm_rssi":[Math.floor(Math.random() * 99)],"gsm_ber":[Math.floor(Math.random() * 99)],"last_updated":[new Date().toUTCString()]};
@@ -633,7 +856,7 @@
 				}
 
 				var rssi = Math.floor(Math.random() * 99);
-				cardState = {"id":"1", "test":3, "loc":loc, "gsm_rssi":gsm_rssi,"gsm_ber":gsm_ber,"ts":ts,datums:r.length,
+				cardState = {"id":"1", "type":"signal", "loc":loc, "gsm_rssi":gsm_rssi,"gsm_ber":gsm_ber,"ts":ts,datums:r.length,
 						"a0": 1,		
 						"a1": 1,		
 						"a2": 1,		
@@ -645,8 +868,11 @@
 						"a8": 1,		
 						"a9": 1
 				};
+				PanoptesCardUpdated(cardState);
+				cardState.id = 2;
 				PanoptesCardUpdated(cardState);				
-		}
+
+}
 	</script>
 </head>
 <body>
@@ -673,12 +899,39 @@
 			<div class="botcut"></div>
 		</div>
 	</div>
+	<div id="summary" class="card">
+		<div class="paper">
+			<div class="topcut"></div>
+			<div class="texture">
+				<div class="content">
+					<div class="title">Summary Report</div>
+					<div class="summarytext">
+						<span class="sumaryTextSentence summaryAccumulatedHours">Since your first use of Panoptes, you have accumulated <span class="sumaryTextSentence summaryTextValue">67</span> hours of data. </span><span class="sumaryTextSentence summaryTotalDroppedCalls">From that data, we know you have experienced at least <span class="summaryTextValue value">47</span> dropped calls. </span><span class="sumaryTextSentence summaryTotalDroppedCallsDueToSignal">Of these, <span class="summaryTextValue">27</span> were due to your signal dropping out. </span><span class="sumaryTextSentence summaryLongestPeriodNoSignal">The longest period of time your phone spent without signal was <span class="summaryTextValue">28</span> minutes. </span><span class="sumaryTextSentence summaryUnsuccessfulCallsNoSignal">During periods of no signal, you unsuccessfully attempted to make <span class="summaryTextValue disabled">3</span> calls.</span>   
+					</div>
+					<div class="summaries" style="display: none;">
+						<div class="period_from time"><b>From:&nbsp;</b><span class="value">25th Nov 2011 18:20:22 GMT+0</span></div>
+						<div class="period_to time"><b>To:&nbsp;</b><span class="value">25th Nov 2011 18:22:22 GMT+0</span></div>
+						<div class="summary" style="display: none;">
+							<div style="float: left; clear: left; margin-top: 8px; line-height: 27px;">
+								<div class="name">Avg. Dropped Calls Per Week</div>
+								<div class="description">Description</div>
+							</div>
+							<div style="float: right;">
+								<div class="value">15</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="botcut"></div>
+		</div>
+	</div>
 	<div class="card report" style="display: none;">
 		<div class="paper">
 			<div class="topcut"></div>
 			<div class="texture">
 				<div class="content">
-					<div class="title">Operator Report Card #</div>
+					<div class="title">Operator Report Card #</div>&nbsp;<div class="syncstatus inflight"></div>
 					<div class="period_from time"><b>From:&nbsp;</b><span class="value">25th Nov 2011 18:20:22 GMT+0</span></div>
 					<div class="period_to time"><b>To:&nbsp;</b><span class="value">25th Nov 2011 18:22:22 GMT+0</span></div>
 					<div class="metrics">
@@ -707,8 +960,11 @@
 			<div class="botcut"></div>
 		</div>
 	</div>
-	<div class="debug">
+	<div id="feedback">
+		<input type="button" value="&nbsp;Send Feedback or Bug Report&nbsp;"/>
 	</div>
+</div>
+<div class="debug">
 </div>
 </body>
 </html>

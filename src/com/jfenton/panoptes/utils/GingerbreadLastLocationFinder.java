@@ -44,7 +44,7 @@ import com.jfenton.panoptes.utils.base.ILastLocationFinder;
 public class GingerbreadLastLocationFinder implements ILastLocationFinder {
   
   protected static String TAG = "LastLocationFinder";
-  protected static String SINGLE_LOCATION_UPDATE_ACTION = "com.radioactiveyak.places.SINGLE_LOCATION_UPDATE_ACTION";
+  protected static String SINGLE_LOCATION_UPDATE_ACTION = "com.jfenton.panoptes.places.SINGLE_LOCATION_UPDATE_ACTION";
   
   protected PendingIntent singleUpatePI;
   protected LocationListener locationListener;
