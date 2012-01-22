@@ -298,6 +298,42 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		515E94BF14BD71B300596A67 /* Ad Hoc */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = "Ad Hoc";
+		};
+		515E94C014BD71B300596A67 /* Ad Hoc */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Distribution: Jay Fenton";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution: Jay Fenton";
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "src-ios/Panoptes-Prefix.pch";
+				INFOPLIST_FILE = "src-ios/Panoptes-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "830BE2B1-B6B3-41F4-96D1-D7F0F31C45A4";
+				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "830BE2B1-B6B3-41F4-96D1-D7F0F31C45A4";
+				WRAPPER_EXTENSION = app;
+			};
+			name = "Ad Hoc";
+		};
 		5183854714B54AAE00AC3B9D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -348,10 +384,12 @@
 		5183854A14B54AAE00AC3B9D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer: Jay Fenton (BTE6SGC46E)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "src-ios/Panoptes-Prefix.pch";
 				INFOPLIST_FILE = "src-ios/Panoptes-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "271BE05E-82C8-4B35-A1D8-7E0E3189AEAE";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -359,10 +397,12 @@
 		5183854B14B54AAE00AC3B9D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer: Jay Fenton (BTE6SGC46E)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "src-ios/Panoptes-Prefix.pch";
 				INFOPLIST_FILE = "src-ios/Panoptes-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "271BE05E-82C8-4B35-A1D8-7E0E3189AEAE";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -375,6 +415,7 @@
 			buildConfigurations = (
 				5183854714B54AAE00AC3B9D /* Debug */,
 				5183854814B54AAE00AC3B9D /* Release */,
+				515E94BF14BD71B300596A67 /* Ad Hoc */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -384,6 +425,7 @@
 			buildConfigurations = (
 				5183854A14B54AAE00AC3B9D /* Debug */,
 				5183854B14B54AAE00AC3B9D /* Release */,
+				515E94C014BD71B300596A67 /* Ad Hoc */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
