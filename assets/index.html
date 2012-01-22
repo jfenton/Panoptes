@@ -76,29 +76,6 @@
 			width: 180px;
 			height: 194px;
 		}
-		div.card div.syncstatus {
-			position: relative;
-			top: 14px;
-			left: 8px;
-			float: left;
-			clear: none;
-			width: 10px;
-			height: 10px;
-			display: block;
-			padding-left: 5
-			border-radius:5px;
-			-moz-border-radius:5px;
-			-webkit-border-radius:5px;
-			-khtml-border-radius:5px;
-			background: #8c0000;
-		}
-		div.card div.syncstatus.inflight {
-			background: #999999;
-		}
-		div.card div.syncstatus.yes {
-			background: green;
-		}
-		
 		div.metric canvas.graph {
 			display: none;
 			float: left;
@@ -685,10 +662,13 @@
 				cardStateJSON = Panoptes.getMonitorCardState();
 				cardState = jQuery.parseJSON(cardStateJSON);
 			} else if(typeof cardStateJSON == 'object') {
-				cardState = cardStateJSON;				
+				// For easier debugging, native objects can be passed in (do not use for production code as we re-stringify it!)
+				cardState = cardStateJSON;
+				cardStateJSON = JSON.stringify(cardState);
 			} else { 
 				cardState = jQuery.parseJSON(cardStateJSON);
 			}
+			
 			counter = counter + 1;
 
 			var timeNow = new Date().getTime();
@@ -716,6 +696,8 @@
 
 				displayCardMetricsForOffset({ state:cardState }, div);
 			} else {
+				localStorage.setItem(cardState.id, cardStateJSON);
+				
  				card = cards[ cardState.id ];
  				if(card == null) {
  	 				card = new Card(cardState.id);
@@ -770,6 +752,9 @@
 			
 			return this;
 		};
+		
+		var db = null;
+		
 		$(document).ready(function() {
 /* 			var c = new Card(2);
 			c.render();
@@ -931,7 +916,7 @@
 			<div class="topcut"></div>
 			<div class="texture">
 				<div class="content">
-					<div class="title">Operator Report Card #</div>&nbsp;<div class="syncstatus inflight"></div>
+					<div class="title">Operator Report Card #</div>
 					<div class="period_from time"><b>From:&nbsp;</b><span class="value">25th Nov 2011 18:20:22 GMT+0</span></div>
 					<div class="period_to time"><b>To:&nbsp;</b><span class="value">25th Nov 2011 18:22:22 GMT+0</span></div>
 					<div class="metrics">

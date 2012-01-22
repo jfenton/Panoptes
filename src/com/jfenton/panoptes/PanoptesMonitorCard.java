@@ -465,15 +465,16 @@ public class PanoptesMonitorCard extends PanoptesCard {
 				long window = pmc.getMillisecondsSinceLastUnacceptable();
 				Log.e("Panoptes", "Window is " + window);
 				if (window > 15000) {
-					activeReportCard = null;
 					lm.removeUpdates(pmc.locationListener);
 					Log.e("Panoptes", "Report card complete. Disabled location updates, and queueing card for uplink.");
 					
-				    Intent checkinServiceIntent = new Intent(pmc.context, PlaceCheckinService.class);
-				      checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_REFERENCE, "123");
-				      checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_ID, "123");
-				      checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_TIME_STAMP, System.currentTimeMillis());
-				      pmc.context.startService(checkinServiceIntent);
+					Intent checkinServiceIntent = new Intent(pmc.context, PlaceCheckinService.class);
+					checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_REFERENCE, activeReportCard.serialiseToJSON().toString());
+					checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_ID, activeReportCard.id);
+					checkinServiceIntent.putExtra(PanoptesConstants.EXTRA_KEY_TIME_STAMP, System.currentTimeMillis());
+					pmc.context.startService(checkinServiceIntent);
+
+				    activeReportCard = null;
 				}
 			}
 

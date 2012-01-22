@@ -67,6 +67,7 @@ import android.util.EventLog;
 import android.util.Log;
 import android.util.EventLog.Event;
 import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.LinearLayout;
 
@@ -152,12 +153,19 @@ public class PanoptesWebActivity extends Activity {
 		this.getApplicationContext().startService(newinIntent);
 
 		mWebView = (WebView) findViewById(R.id.webview);
-		mWebView.getSettings().setJavaScriptEnabled(true);
+
+		WebSettings webSettings = mWebView.getSettings();
+		webSettings.setLightTouchEnabled(true);
+		webSettings.setJavaScriptEnabled(true);
+		webSettings.setDatabaseEnabled(true);
+		webSettings.setDatabasePath("/data/data/com.jfenton.panoptes/databases"); // TODO: Can we get the package name programmatically?
+		webSettings.setDomStorageEnabled(true);
+		
 		mWebView.setVerticalScrollbarOverlay(true);
 		mWebView.setHorizontalScrollbarOverlay(true);
 		mWebView.setBackgroundColor(Color.BLACK);
 		mWebView.setScrollBarStyle(WebView.SCROLLBARS_INSIDE_OVERLAY);
-		mWebView.getSettings().setLightTouchEnabled(true);
+		
 		mWebView.addJavascriptInterface(new PanoptesWebBridge(this), "Panoptes");
 		mWebView.setWebChromeClient(new WebChromeClient() {
 			public void onConsoleMessage(String message, int lineNumber, String sourceID) {
